@@ -60,6 +60,44 @@ func newRequestID() string {
 	return hex.EncodeToString(b[:])
 }
 
+// contentSecurityPolicy locks the app to its own origin. style-src allows
+// 'unsafe-inline' because the server-rendered pages use inline style attributes;
+// scripts (HTMX) load only from /static. frame-ancestors 'none' blocks
+// clickjacking; form-action 'self' blocks form hijacking.
+const contentSecurityPolicy = "default-src 'self'; " +
+	"script-src 'self'; " +
+	"style-src 'self' 'unsafe-inline'; " +
+	"img-src 'self' data:; " +
+	"font-src 'self'; " +
+	"object-src 'none'; " +
+	"base-uri 'self'; " +
+	"form-action 'self'; " +
+	"frame-ancestors 'none'"
+
+const hstsValue = "max-age=31536000; includeSubDomains"
+
+// SecurityHeaders sets defensive response headers on every response: a strict
+// Content-Security-Policy, anti-clickjacking and anti-MIME-sniffing headers, and
+// a conservative Referrer-Policy. HSTS is emitted only when secure is true (TLS
+// in production), since it must not be sent over plain HTTP in dev.
+func SecurityHeaders(secure bool) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			h := w.Header()
+			h.Set("X-Content-Type-Options", "nosniff")
+			h.Set("X-Frame-Options", "DENY")
+			h.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			h.Set("Content-Security-Policy", contentSecurityPolicy)
+
+			if secure {
+				h.Set("Strict-Transport-Security", hstsValue)
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // Recovery converts a panic in a downstream handler into a 500 response and
 // logs it, so a single bad handler never takes the server down.
 func Recovery(logger *slog.Logger) func(http.Handler) http.Handler {

@@ -29,3 +29,10 @@ func NewSessionStoreWithSeams(
 
 	return s
 }
+
+// RunDispatchSynchronously makes the handler's off-response-path magic-link
+// dispatch run inline, so tests observe it deterministically without a leaked
+// goroutine.
+func RunDispatchSynchronously(h *Handler) {
+	h.async = func(f func()) { f() }
+}

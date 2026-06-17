@@ -1,0 +1,18 @@
+DROP POLICY IF EXISTS sessions_org_isolation_update ON sessions;
+DROP POLICY IF EXISTS sessions_org_isolation_insert ON sessions;
+DROP POLICY IF EXISTS sessions_org_isolation_select ON sessions;
+DROP POLICY IF EXISTS events_org_isolation_update ON events;
+DROP POLICY IF EXISTS events_org_isolation_insert ON events;
+DROP POLICY IF EXISTS events_org_isolation_select ON events;
+DROP POLICY IF EXISTS seasons_org_isolation_update ON seasons;
+DROP POLICY IF EXISTS seasons_org_isolation_insert ON seasons;
+DROP POLICY IF EXISTS seasons_org_isolation_select ON seasons;
+DROP POLICY IF EXISTS championships_org_isolation_update ON championships;
+DROP POLICY IF EXISTS championships_org_isolation_insert ON championships;
+DROP POLICY IF EXISTS championships_org_isolation_select ON championships;
+DROP TABLE IF EXISTS sessions;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS seasons;
+DROP TABLE IF EXISTS championships;
+DROP TYPE IF EXISTS event_status;
+DROP TYPE IF EXISTS session_type;

@@ -8,11 +8,55 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/pubkraal/paddock/internal/platform/httpx"
 )
+
+func TestSecurityHeaders(t *testing.T) {
+	t.Parallel()
+
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })
+
+	t.Run("always-on headers, no HSTS when insecure", func(t *testing.T) {
+		t.Parallel()
+
+		rr := httptest.NewRecorder()
+		httpx.SecurityHeaders(false)(next).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/", nil))
+
+		want := map[string]string{
+			"X-Content-Type-Options": "nosniff",
+			"X-Frame-Options":        "DENY",
+			"Referrer-Policy":        "strict-origin-when-cross-origin",
+		}
+		for k, v := range want {
+			if got := rr.Header().Get(k); got != v {
+				t.Errorf("%s = %q, want %q", k, got, v)
+			}
+		}
+
+		if csp := rr.Header().Get("Content-Security-Policy"); csp == "" || !strings.Contains(csp, "frame-ancestors 'none'") {
+			t.Errorf("CSP = %q, want a policy with frame-ancestors 'none'", csp)
+		}
+
+		if hsts := rr.Header().Get("Strict-Transport-Security"); hsts != "" {
+			t.Errorf("HSTS = %q, want empty when insecure", hsts)
+		}
+	})
+
+	t.Run("HSTS when secure", func(t *testing.T) {
+		t.Parallel()
+
+		rr := httptest.NewRecorder()
+		httpx.SecurityHeaders(true)(next).ServeHTTP(rr, httptest.NewRequest(http.MethodGet, "/", nil))
+
+		if hsts := rr.Header().Get("Strict-Transport-Security"); hsts == "" {
+			t.Error("HSTS header missing when secure")
+		}
+	})
+}
 
 func TestHealthz(t *testing.T) {
 	t.Parallel()

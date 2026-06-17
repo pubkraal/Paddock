@@ -43,6 +43,54 @@ func (r *Repository) Lookup(ctx context.Context, email string) (User, error) {
 	return u, nil
 }
 
+const provisionConsumerSQL = `
+INSERT INTO users (org_id, email, role, status)
+VALUES ($1, $2, 'consumer', 'active')
+ON CONFLICT (email) DO NOTHING
+RETURNING id, org_id, email, role, status, created_at`
+
+const selectUserByEmailSQL = `
+SELECT id, org_id, email, role, status, created_at FROM users WHERE email = $1`
+
+// ProvisionConsumerTx ensures a consumer account exists for email within the
+// transaction's org scope, returning the user and whether it was newly created.
+// It runs inside a caller-supplied tx (the accreditation-import transaction, so
+// the user, its accreditation, and its invite job commit atomically — ADR-0016).
+//
+// Provisioning is idempotent on the globally-unique email (ADR-0012): a fresh
+// email inserts (created=true); an email already in this org re-selects it
+// (created=false), so re-import does not double-invite. An email registered to a
+// DIFFERENT org conflicts on insert and is invisible under this scope, yielding
+// ErrEmailTaken — the importer reports it as a row error rather than silently
+// rebinding the person. That cross-org invisibility relies on the RLS scope
+// predicate filtering the other org's row to zero rows; migration 0009 hardens
+// that predicate against an empty (post-SET-LOCAL) GUC so this stays correct.
+func (r *Repository) ProvisionConsumerTx(ctx context.Context, tx *sql.Tx, orgID, email string) (User, bool, error) {
+	var u User
+
+	err := tx.QueryRowContext(ctx, provisionConsumerSQL, orgID, email).
+		Scan(&u.ID, &u.OrgID, &u.Email, &u.Role, &u.Status, &u.CreatedAt)
+	if err == nil {
+		return u, true, nil
+	}
+
+	if !errors.Is(err, sql.ErrNoRows) {
+		return User{}, false, fmt.Errorf("identity: provision consumer: %w", err)
+	}
+
+	err = tx.QueryRowContext(ctx, selectUserByEmailSQL, email).
+		Scan(&u.ID, &u.OrgID, &u.Email, &u.Role, &u.Status, &u.CreatedAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return User{}, false, ErrEmailTaken
+	}
+
+	if err != nil {
+		return User{}, false, fmt.Errorf("identity: reselect consumer: %w", err)
+	}
+
+	return u, false, nil
+}
+
 const getUserSQL = `SELECT id, org_id, email, role, status, created_at FROM users WHERE id = $1`
 
 // GetUser loads a user by id within the org's scope. The org scope is set via

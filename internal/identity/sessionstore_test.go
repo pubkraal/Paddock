@@ -41,8 +41,15 @@ func TestSessionStore_CreateThenGetRoundTrips(t *testing.T) {
 		t.Fatalf("Get: %v", err)
 	}
 
+	// The CSRF token is generated at create time, so compare the rest exactly and
+	// assert the token round-trips as a non-empty value.
+	if got.CSRFToken == "" {
+		t.Error("session round-trip lost the CSRF token")
+	}
+
 	want := testSession()
 	want.ID = id
+	want.CSRFToken = got.CSRFToken
 
 	if got != want {
 		t.Errorf("session = %+v, want %+v", got, want)
@@ -163,6 +170,30 @@ func TestSessionStore_CreateGenerateError(t *testing.T) {
 
 	if _, err := store.Create(context.Background(), testSession()); err == nil {
 		t.Fatal("expected error when the entropy source fails, got nil")
+	}
+}
+
+// secondReadFails fills the buffer on the first Read (the session id) then fails
+// on the second (the CSRF token), so the csrf-generation error path is covered.
+type secondReadFails struct{ calls int }
+
+func (s *secondReadFails) Read(p []byte) (int, error) {
+	s.calls++
+	if s.calls > 1 {
+		return 0, errors.New("no entropy")
+	}
+
+	return len(p), nil
+}
+
+func TestSessionStore_CreateCSRFGenerateError(t *testing.T) {
+	t.Parallel()
+
+	_, client := newRedis(t)
+	store := identity.NewSessionStoreWithSeams(client, time.Hour, &secondReadFails{}, json.Marshal)
+
+	if _, err := store.Create(context.Background(), testSession()); err == nil {
+		t.Fatal("expected error when CSRF token generation fails, got nil")
 	}
 }
 

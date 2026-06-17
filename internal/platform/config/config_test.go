@@ -296,6 +296,71 @@ func TestLoadWorker_ConcurrencyDefaultAndOverride(t *testing.T) {
 	}
 }
 
+func TestLoadWeb_DevFlag(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.LoadWeb(envFrom(completeEnv()))
+	if err != nil {
+		t.Fatalf("LoadWeb: %v", err)
+	}
+
+	if cfg.Dev {
+		t.Error("Dev = true by default, want false (production-safe)")
+	}
+
+	env := completeEnv()
+	env["PADDOCK_DEV"] = "true"
+
+	cfg, err = config.LoadWeb(envFrom(env))
+	if err != nil {
+		t.Fatalf("LoadWeb with PADDOCK_DEV: %v", err)
+	}
+
+	if !cfg.Dev {
+		t.Error("Dev = false with PADDOCK_DEV=true, want true")
+	}
+}
+
+func TestLoadWorker_CarriesRedisMailerAuth(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.LoadWorker(envFrom(completeEnv()))
+	if err != nil {
+		t.Fatalf("LoadWorker: %v", err)
+	}
+
+	if cfg.Auth.BaseURL == "" {
+		t.Error("Worker.Auth.BaseURL is empty, want the PADDOCK_BASE_URL")
+	}
+
+	if cfg.Mailer.From == "" {
+		t.Error("Worker.Mailer.From is empty, want the PADDOCK_MAIL_FROM")
+	}
+
+	if cfg.Redis.Addr == "" {
+		t.Error("Worker.Redis.Addr is empty, want the configured Redis address")
+	}
+}
+
+func TestLoadWorker_MissingMailAndAuthKeys(t *testing.T) {
+	t.Parallel()
+
+	env := completeEnv()
+	delete(env, "PADDOCK_BASE_URL")
+	delete(env, "PADDOCK_MAIL_FROM")
+
+	_, err := config.LoadWorker(envFrom(env))
+	if err == nil {
+		t.Fatal("expected error when the worker's mail/auth keys are missing")
+	}
+
+	for _, key := range []string{"PADDOCK_BASE_URL", "PADDOCK_MAIL_FROM"} {
+		if !strings.Contains(err.Error(), key) {
+			t.Errorf("error %q does not mention %s", err, key)
+		}
+	}
+}
+
 func TestLoadWorker_InvalidConcurrency(t *testing.T) {
 	t.Parallel()
 

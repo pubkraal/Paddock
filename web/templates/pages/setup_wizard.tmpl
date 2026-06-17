@@ -1,0 +1,76 @@
+{{define "setup_wizard" -}}
+{{template "head" .}}
+<div class="shell">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="logo" aria-hidden="true"></span>
+      <span class="topbar__wordmark">Paddock</span>
+      <span class="mono-label">New event</span>
+    </div>
+    <div class="topbar__meta">
+      <span class="mono-label">Same-day setup · ~6 min</span>
+      <a class="btn btn--ghost" href="/admin">Cancel</a>
+    </div>
+  </header>
+
+  <main class="main" id="wizard">
+    <form class="split" method="post" action="/admin/events"
+          hx-post="/admin/events" hx-target="#wizard" hx-swap="innerHTML"
+          hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}'>
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
+      <section class="card">
+        <span class="mono-label card__label">Start from template</span>
+        <div class="tmpl-grid">
+          {{range $i, $t := .Templates}}
+          <label class="tmpl-card">
+            <input type="radio" name="template" value="{{$t.Key}}" hidden {{if eq $i 0}}checked{{end}}>
+            <span class="tmpl-card__label">{{$t.Label}}</span>
+            <span class="tmpl-card__blurb">{{$t.Blurb}}</span>
+          </label>
+          {{end}}
+        </div>
+        <p class="mono-label" style="margin-top:14px">Sessions scaffold automatically — no services needed.</p>
+      </section>
+
+      <section class="card">
+        <span class="mono-label card__label">Event details</span>
+        <div class="field">
+          <label class="mono-label" for="event_name">Event name</label>
+          <input class="input" id="event_name" name="event_name" placeholder="24H Nürburgring 2027" required>
+        </div>
+        <div class="field__row">
+          <div class="field">
+            <label class="mono-label" for="championship">Championship</label>
+            <input class="input" id="championship" name="championship" placeholder="NLS">
+          </div>
+          <div class="field">
+            <label class="mono-label" for="season">Season</label>
+            <input class="input" id="season" name="season" placeholder="2027">
+          </div>
+        </div>
+        <div class="field__row">
+          <div class="field">
+            <label class="mono-label" for="venue">Circuit</label>
+            <input class="input" id="venue" name="venue" placeholder="Nürburgring Nordschleife">
+          </div>
+          <div class="field">
+            <label class="mono-label" for="season_year">Year</label>
+            <input class="input" id="season_year" name="season_year" inputmode="numeric" placeholder="2027">
+          </div>
+        </div>
+        <button class="btn btn--primary auth__submit" type="submit">Scaffold event →</button>
+      </section>
+
+      <section class="card">
+        <span class="mono-label card__label">What you'll do next</span>
+        <ul class="muted" style="margin:0;padding-left:18px;line-height:1.8">
+          <li>Import the entry list — CSV or XLSX</li>
+          <li>Import accreditations — magic-link invites sent automatically</li>
+          <li>Go live — ready to receive media</li>
+        </ul>
+      </section>
+    </form>
+  </main>
+</div>
+{{template "foot" .}}
+{{- end}}

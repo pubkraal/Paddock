@@ -39,6 +39,10 @@ type HandlerConfig struct {
 	SessionTTL   time.Duration
 }
 
+// magicLinkDispatchTimeout bounds the off-response-path lookup + token issue +
+// send so a stuck SMTP relay cannot leak a goroutine indefinitely.
+const magicLinkDispatchTimeout = 10 * time.Second
+
 // Handler serves the Access screens and the magic-link flow.
 type Handler struct {
 	svc          authService
@@ -47,6 +51,9 @@ type Handler struct {
 	logger       *slog.Logger
 	cookieSecure bool
 	sessionTTL   time.Duration
+	// async runs the magic-link dispatch off the response path. It defaults to a
+	// goroutine; tests inject a synchronous runner.
+	async func(func())
 }
 
 // NewHandler builds a Handler from its config.
@@ -58,6 +65,7 @@ func NewHandler(cfg HandlerConfig) *Handler {
 		logger:       cfg.Logger,
 		cookieSecure: cfg.CookieSecure,
 		sessionTTL:   cfg.SessionTTL,
+		async:        func(f func()) { go f() },
 	}
 }
 
@@ -87,19 +95,29 @@ func (h *Handler) RequestLink() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		email := strings.TrimSpace(r.FormValue("email"))
 
-		if err := h.svc.RequestMagicLink(r.Context(), email); err != nil {
-			h.logger.ErrorContext(r.Context(), "request magic link", "err", err)
-		}
-
+		// Respond identically and immediately; the lookup + token issue + email
+		// send run off the response path, so response timing cannot reveal
+		// whether the email exists (anti-enumeration, ADR-0012/0013).
 		data := loginData{Sent: true, Email: email}
 
 		if isHTMX(r) {
 			h.render(r.Context(), w, "link_sent", data)
-
-			return
+		} else {
+			h.render(r.Context(), w, "login", data)
 		}
 
-		h.render(r.Context(), w, "login", data)
+		h.async(func() { h.dispatchMagicLink(email) })
+	}
+}
+
+// dispatchMagicLink resolves the email and, for an active user, issues and sends
+// the link. It runs off the response path with its own bounded context.
+func (h *Handler) dispatchMagicLink(email string) {
+	ctx, cancel := context.WithTimeout(context.Background(), magicLinkDispatchTimeout)
+	defer cancel()
+
+	if err := h.svc.RequestMagicLink(ctx, email); err != nil {
+		h.logger.ErrorContext(ctx, "dispatch magic link", "err", err)
 	}
 }
 

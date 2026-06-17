@@ -1,0 +1,77 @@
+{{define "wizard_event" -}}
+{{$ev := .Detail.Event}}
+<div class="split">
+  <section class="card">
+    <span class="mono-label card__label">Sessions · auto-generated</span>
+    <div class="session-grid">
+      {{range .Detail.Sessions}}
+      <div class="session">
+        <span class="data">{{.Name}}</span>
+        <span class="badge badge--green"><span class="badge__dot"></span><span class="badge__label">{{.Type}}</span></span>
+      </div>
+      {{end}}
+    </div>
+    <p class="mono-label" style="margin-top:14px">{{len .Detail.Sessions}} created for {{$ev.Name}}</p>
+  </section>
+
+  <section class="card">
+    <span class="mono-label card__label">Entry list — CSV or XLSX</span>
+    <form class="upload" method="post" action="/admin/events/{{$ev.ID}}/entry-list"
+          hx-post="/admin/events/{{$ev.ID}}/entry-list" hx-target="#wizard" hx-swap="innerHTML"
+          hx-encoding="multipart/form-data" enctype="multipart/form-data"
+          hx-headers='{"X-CSRF-Token": "{{$.CSRF}}"}'>
+      <div class="upload__row">
+        <input class="input" type="file" name="file" accept=".csv,.xlsx" required>
+        <button class="btn btn--primary" type="submit">Import</button>
+      </div>
+    </form>
+    {{with .EntryList}}
+      <p class="mono-label" style="margin-top:12px">
+        ✓ {{len .Entries}} cars · {{len .Errors}} errors
+      </p>
+      {{if .Entries}}
+      <table class="table">
+        <thead><tr><th>№</th><th>Team</th><th>Class</th></tr></thead>
+        <tbody>
+          {{range .Entries}}
+          <tr><td class="num">{{.CarNo}}</td><td>{{.Team}}</td><td class="muted">{{.Class}}</td></tr>
+          {{end}}
+        </tbody>
+      </table>
+      {{end}}
+      {{if .Errors}}
+      <ul class="errors">{{range .Errors}}<li>line {{.Line}}: {{.Message}}</li>{{end}}</ul>
+      {{end}}
+    {{end}}
+  </section>
+
+  <section class="card">
+    <span class="mono-label card__label">Accreditation — CSV or XLSX</span>
+    <form class="upload" method="post" action="/admin/events/{{$ev.ID}}/accreditation"
+          hx-post="/admin/events/{{$ev.ID}}/accreditation" hx-target="#wizard" hx-swap="innerHTML"
+          hx-encoding="multipart/form-data" enctype="multipart/form-data"
+          hx-headers='{"X-CSRF-Token": "{{$.CSRF}}"}'>
+      <div class="upload__row">
+        <input class="input" type="file" name="file" accept=".csv,.xlsx" required>
+        <button class="btn btn--primary" type="submit">Import &amp; invite</button>
+      </div>
+    </form>
+    {{with .Accred}}
+      <div class="badge-row" style="margin-top:12px">
+        {{range $tier, $n := .TierCounts}}
+        <span class="badge badge--blue"><span class="badge__dot"></span><span class="badge__label">{{$n}} {{$tier}}</span></span>
+        {{end}}
+      </div>
+      <p class="mono-label" style="margin-top:10px">{{.Invited}} magic-link invites enqueued · {{len .Errors}} errors</p>
+      {{if .Errors}}
+      <ul class="errors">{{range .Errors}}<li>line {{.Line}}: {{.Message}}</li>{{end}}</ul>
+      {{end}}
+    {{end}}
+
+    <form method="post" action="/admin/events/{{$ev.ID}}/go-live" style="margin-top:16px">
+      <input type="hidden" name="_csrf" value="{{$.CSRF}}">
+      <button class="btn btn--green auth__submit" type="submit">Go live →</button>
+    </form>
+  </section>
+</div>
+{{- end}}

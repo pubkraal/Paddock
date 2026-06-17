@@ -21,6 +21,9 @@ ADRs are permanent. When a decision is superseded by a later one, the original A
 | [ADR-0011](0011-local-dev-ci-docker-compose-testcontainers.md) | Local Dev and CI via docker-compose and testcontainers-go | Accepted | 2026-06-16 |
 | [ADR-0012](0012-rls-bootstrap-identity-lookup-security-definer.md) | RLS-Bootstrap Identity Lookup via a SECURITY DEFINER Function | Accepted | 2026-06-17 |
 | [ADR-0013](0013-passwordless-magic-link-sole-authentication.md) | Passwordless Magic-Link as the Sole Authentication Mechanism | Accepted | 2026-06-17 |
+| [ADR-0014](0014-onboarding-templates-in-go.md) | Onboarding Templates Live in Go, Not the Database | Accepted | 2026-06-17 |
+| [ADR-0015](0015-tabular-import-parser-interface-csv-xlsx.md) | Tabular Import Behind a Parser Interface — CSV and XLSX Adapters | Accepted | 2026-06-17 |
+| [ADR-0016](0016-bulk-consumer-provisioning-transactional-invite-job.md) | Bulk Consumer Provisioning via a Transactional River Invite Job | Accepted | 2026-06-17 |
 
 ## Tags
 
@@ -29,9 +32,9 @@ ADRs are permanent. When a decision is superseded by a later one, the original A
 | architecture | ADR-0001, ADR-0002 |
 | storage | ADR-0003, ADR-0010 |
 | ingest | ADR-0004, ADR-0006 |
-| jobs / async | ADR-0005 |
+| jobs / async | ADR-0005, ADR-0016 |
 | image-processing | ADR-0006 |
-| email | ADR-0007 |
+| email | ADR-0007, ADR-0016 |
 | multitenancy | ADR-0008, ADR-0009, ADR-0012 |
 | data-access | ADR-0009 |
 | delivery | ADR-0010 |
@@ -39,4 +42,6 @@ ADRs are permanent. When a decision is superseded by a later one, the original A
 | developer-experience | ADR-0011 |
 | eu-residency | ADR-0003, ADR-0007 |
 | security | ADR-0008, ADR-0010, ADR-0012, ADR-0013 |
-| identity / auth | ADR-0012, ADR-0013 |
+| identity / auth | ADR-0012, ADR-0013, ADR-0016 |
+| onboarding / setup | ADR-0014, ADR-0015, ADR-0016 |
+| import / data-onboarding | ADR-0015 |
