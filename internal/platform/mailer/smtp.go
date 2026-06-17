@@ -39,6 +39,14 @@ func (m *SMTPMailer) Send(_ context.Context, msg Message) error {
 		return errMissingRecipient
 	}
 
+	// Defence in depth against header injection (CWE-93): a CR/LF in To or
+	// Subject would let an attacker-influenced value forge extra headers. Callers
+	// validate emails upstream and net/smtp also rejects CR/LF in addresses, but
+	// the hand-built header block guards here too.
+	if strings.ContainsAny(msg.To, "\r\n") || strings.ContainsAny(msg.Subject, "\r\n") {
+		return errUnsafeHeader
+	}
+
 	body := buildMessage(m.from, msg)
 
 	if err := m.send(m.addr, nil, m.from, []string{msg.To}, body); err != nil {

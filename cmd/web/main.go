@@ -97,7 +97,10 @@ func run(logger *slog.Logger) error {
 		"redis":       rdb.Ping,
 		"objectstore": store.Ping,
 	}))
-	router.HandlerFunc("GET", "/_styleguide", renderer.PageHandler("styleguide"))
+	if cfg.Dev {
+		router.HandlerFunc("GET", "/_styleguide", renderer.PageHandler("styleguide"))
+	}
+
 	router.Handler("GET", "/static/*filepath", web.StaticHandler())
 
 	router.HandlerFunc("GET", "/login", ih.LoginPage())

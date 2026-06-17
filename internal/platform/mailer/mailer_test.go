@@ -169,6 +169,41 @@ func TestSMTPMailer_SendNoRecipient(t *testing.T) {
 	}
 }
 
+func TestSMTPMailer_SendRejectsHeaderInjection(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		opt  func(*mailer.Message)
+	}{
+		{"newline in To", func(m *mailer.Message) { m.To = "victim@x.test\r\nBcc: evil@x.test" }},
+		{"newline in Subject", func(m *mailer.Message) { m.Subject = "hi\r\nBcc: evil@x.test" }},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			called := false
+			send := func(_ string, _ smtp.Auth, _ string, _ []string, _ []byte) error {
+				called = true
+
+				return nil
+			}
+
+			m := mailer.NewTestSMTPMailer("localhost:1025", "no-reply@paddock.test", send)
+
+			if err := m.Send(context.Background(), testMessage(tt.opt)); err == nil {
+				t.Fatal("expected error for CR/LF in header, got nil")
+			}
+
+			if called {
+				t.Error("send must not be called when a header carries CR/LF")
+			}
+		})
+	}
+}
+
 func TestSMTPMailer_SendPropagatesError(t *testing.T) {
 	t.Parallel()
 

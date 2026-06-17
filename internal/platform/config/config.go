@@ -70,6 +70,9 @@ type Web struct {
 	ObjectStore ObjectStore
 	Auth        Auth
 	Mailer      Mailer
+	// Dev enables developer-only surfaces (e.g. the /_styleguide route). It must
+	// be false in production.
+	Dev bool
 }
 
 // Worker is the full configuration for cmd/worker. It carries Redis, Mailer and
@@ -107,6 +110,7 @@ func LoadWeb(getenv func(string) string) (Web, error) {
 		ObjectStore: r.objectStore(),
 		Auth:        r.auth(),
 		Mailer:      r.mailer(),
+		Dev:         r.boolean("PADDOCK_DEV", false),
 	}
 
 	if err := r.err(); err != nil {

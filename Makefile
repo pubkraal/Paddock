@@ -27,6 +27,7 @@ run: up migrate ## Bring the stack up and run cmd/web (dev env, cookies over htt
 	PADDOCK_BASE_URL="http://localhost:8080" \
 	PADDOCK_MAIL_FROM="no-reply@paddock.local" \
 	PADDOCK_COOKIE_SECURE="false" \
+	PADDOCK_DEV="true" \
 	PADDOCK_SMTP_ADDR="localhost:1025" \
 	S3_ENDPOINT="http://localhost:9000" \
 	S3_ACCESS_KEY_ID="minioadmin" \

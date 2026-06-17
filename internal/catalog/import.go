@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/mail"
 	"strings"
 
 	"github.com/pubkraal/paddock/internal/identity"
@@ -277,11 +278,17 @@ func parseAccreditations(sheet tabular.Sheet) (AccreditationPreview, error) {
 			continue
 		}
 
-		if !strings.Contains(email, "@") {
+		addr, err := mail.ParseAddress(email)
+		if err != nil {
 			preview.Errors = append(preview.Errors, RowError{Line: line, Message: "invalid email: " + email})
 
 			continue
 		}
+
+		// Use the parsed address (display name stripped, CR/LF rejected by the
+		// parser — the SMTP-header-injection guard); citext dedup is
+		// case-insensitive so no further normalization is needed.
+		email = addr.Address
 
 		tier, err := ParseTier(tierRaw)
 		if err != nil {

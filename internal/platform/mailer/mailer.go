@@ -14,6 +14,10 @@ import (
 // errMissingRecipient is returned by Send when a Message carries no recipient.
 var errMissingRecipient = errors.New("mailer: message has no recipient")
 
+// errUnsafeHeader is returned when a recipient or subject contains a CR/LF that
+// could forge additional headers (CWE-93).
+var errUnsafeHeader = errors.New("mailer: header contains CR or LF")
+
 // Message is one transactional email. Both bodies are optional individually but
 // at least Text should be set; when HTML is present the message is sent as
 // multipart/alternative so clients pick the richer part.

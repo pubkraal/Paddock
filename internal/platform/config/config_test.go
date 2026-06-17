@@ -296,6 +296,31 @@ func TestLoadWorker_ConcurrencyDefaultAndOverride(t *testing.T) {
 	}
 }
 
+func TestLoadWeb_DevFlag(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.LoadWeb(envFrom(completeEnv()))
+	if err != nil {
+		t.Fatalf("LoadWeb: %v", err)
+	}
+
+	if cfg.Dev {
+		t.Error("Dev = true by default, want false (production-safe)")
+	}
+
+	env := completeEnv()
+	env["PADDOCK_DEV"] = "true"
+
+	cfg, err = config.LoadWeb(envFrom(env))
+	if err != nil {
+		t.Fatalf("LoadWeb with PADDOCK_DEV: %v", err)
+	}
+
+	if !cfg.Dev {
+		t.Error("Dev = false with PADDOCK_DEV=true, want true")
+	}
+}
+
 func TestLoadWorker_CarriesRedisMailerAuth(t *testing.T) {
 	t.Parallel()
 
