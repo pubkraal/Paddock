@@ -5,6 +5,9 @@ package postgres_test
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -12,6 +15,24 @@ import (
 	tcpostgres "github.com/testcontainers/testcontainers-go/modules/postgres"
 )
 
+// rolesInitScript is the canonical two-role bootstrap (ADR-0008/0009) shared
+// with the docker-compose dev stack, so integration tests exercise the exact
+// role setup production uses.
+func rolesInitScript(t *testing.T) string {
+	t.Helper()
+
+	_, thisFile, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("cannot resolve test file path")
+	}
+
+	return filepath.Join(filepath.Dir(thisFile), "..", "..", "..", "deploy", "postgres", "init", "00-roles.sql")
+}
+
+// startPostgres brings up a real Postgres with the two-role bootstrap applied
+// and returns a pool connected as the NON-superuser application role
+// (paddock_app), so RLS policies actually apply to it. Superuser connections
+// bypass RLS (ADR-0008); tenant-isolation proofs must never use them.
 func startPostgres(t *testing.T) *postgres.Pool {
 	t.Helper()
 
@@ -21,6 +42,7 @@ func startPostgres(t *testing.T) *postgres.Pool {
 		tcpostgres.WithDatabase("paddock"),
 		tcpostgres.WithUsername("postgres"),
 		tcpostgres.WithPassword("postgres"),
+		tcpostgres.WithInitScripts(rolesInitScript(t)),
 		tcpostgres.BasicWaitStrategies(),
 	)
 	if err != nil {
@@ -33,14 +55,21 @@ func startPostgres(t *testing.T) *postgres.Pool {
 		_ = container.Terminate(ctx)
 	})
 
-	dsn, err := container.ConnectionString(ctx, "sslmode=disable")
+	host, err := container.Host(ctx)
 	if err != nil {
-		t.Fatalf("connection string: %v", err)
+		t.Fatalf("container host: %v", err)
 	}
+
+	port, err := container.MappedPort(ctx, "5432/tcp")
+	if err != nil {
+		t.Fatalf("container port: %v", err)
+	}
+
+	dsn := fmt.Sprintf("postgres://paddock_app:paddock_app@%s:%s/paddock?sslmode=disable", host, port.Port())
 
 	pool, err := postgres.Open(ctx, dsn)
 	if err != nil {
-		t.Fatalf("open pool: %v", err)
+		t.Fatalf("open pool as paddock_app: %v", err)
 	}
 
 	t.Cleanup(func() { _ = pool.Close() })
@@ -59,6 +88,38 @@ func currentOrg(t *testing.T, ctx context.Context, tx *sql.Tx) string {
 	}
 
 	return got.String
+}
+
+func TestPool_ConnectsAsNonSuperuserAppRole(t *testing.T) {
+	t.Parallel()
+
+	pool := startPostgres(t)
+	ctx := context.Background()
+
+	err := pool.WithOrg(ctx, "11111111-1111-1111-1111-111111111111", func(ctx context.Context, tx *sql.Tx) error {
+		var (
+			role  string
+			super bool
+		)
+
+		const q = `SELECT current_user, rolsuper FROM pg_roles WHERE rolname = current_user`
+		if err := tx.QueryRowContext(ctx, q).Scan(&role, &super); err != nil {
+			return err
+		}
+
+		if role != "paddock_app" {
+			t.Errorf("current_user = %q, want paddock_app (RLS-bound app role)", role)
+		}
+
+		if super {
+			t.Error("application role is a superuser — RLS would be bypassed (ADR-0008)")
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("WithOrg: %v", err)
+	}
 }
 
 func TestWithOrg_SetsGUCInsideTransaction(t *testing.T) {

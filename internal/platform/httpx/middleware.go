@@ -117,7 +117,9 @@ func (s *statusRecorder) WriteHeader(code int) {
 }
 
 func (s *statusRecorder) Write(b []byte) (int, error) {
-	s.wroteHeader = true
+	if !s.wroteHeader {
+		s.WriteHeader(http.StatusOK)
+	}
 
 	return s.ResponseWriter.Write(b)
 }
