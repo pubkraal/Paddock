@@ -79,3 +79,7 @@ Application code sets this GUC in a transaction wrapper before executing any que
 ### Neutral
 
 - Superuser connections (used in migrations) bypass RLS. The `golang-migrate` connection must use a dedicated migration role, not the application role, to ensure migrations can write to all tenant rows. The application role must have RLS enabled and must never be a superuser.
+
+## Addendum (2026-06-17): FORCE ROW LEVEL SECURITY is the house default
+
+Every tenant-owned table is created with both `ENABLE` and `FORCE ROW LEVEL SECURITY`. Standard RLS already applies to `paddock_app` because it is not the table owner (the migration role owns the tables), so `FORCE` changes nothing today. It is added anyway as belt-and-suspenders: should anyone ever run application queries as the owning role, or grant ownership by accident, `FORCE` keeps the policies in effect. It is free, makes the intent explicit in the migration, and removes a latent foot-gun. The one sanctioned cross-tenant read — the login bootstrap — is handled by an explicit `SECURITY DEFINER` function, not by relaxing RLS (see ADR-0012).
