@@ -163,6 +163,53 @@ func TestRLS_UpdateAcrossTenantAffectsZeroRows(t *testing.T) {
 	}
 }
 
+func TestRLS_DeleteDeniedForAppRole(t *testing.T) {
+	t.Parallel()
+
+	app, migrate := startIdentityDB(t)
+	seedTwoOrgs(t, migrate)
+	ctx := context.Background()
+
+	// There is no FOR DELETE policy, so even within its own scope the app role
+	// cannot delete its org or users — both DELETEs affect zero rows.
+	err := app.WithOrg(ctx, orgA, func(ctx context.Context, tx *sql.Tx) error {
+		users, execErr := tx.ExecContext(ctx, `DELETE FROM users`)
+		if execErr != nil {
+			return execErr
+		}
+
+		if n, _ := users.RowsAffected(); n != 0 {
+			t.Errorf("app role deleted %d users, want 0 (no FOR DELETE policy)", n)
+		}
+
+		orgs, execErr := tx.ExecContext(ctx, `DELETE FROM organizations`)
+		if execErr != nil {
+			return execErr
+		}
+
+		if n, _ := orgs.RowsAffected(); n != 0 {
+			t.Errorf("app role deleted %d orgs, want 0", n)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("WithOrg A: %v", err)
+	}
+
+	// Confirm the rows still exist, read back under scope.
+	err = app.WithOrg(ctx, orgA, func(ctx context.Context, tx *sql.Tx) error {
+		if n := countUsers(t, ctx, tx); n != 1 {
+			t.Errorf("after attempted delete, org A sees %d users, want 1", n)
+		}
+
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("WithOrg A recheck: %v", err)
+	}
+}
+
 func TestRLS_NoScopeFailsClosed(t *testing.T) {
 	t.Parallel()
 

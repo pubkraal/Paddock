@@ -25,8 +25,16 @@ CREATE INDEX users_org_id_idx ON users (org_id);
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users FORCE ROW LEVEL SECURITY;
 
--- current_setting(..., true) returns NULL when the GUC is unset, so an unscoped
--- query sees zero rows rather than erroring — fails closed, gracefully.
-CREATE POLICY org_isolation ON users
-    USING (org_id = current_setting('app.current_org', true)::uuid)
+-- Split per command for least privilege (see 0002): read/insert/update only
+-- within the caller's org; no FOR DELETE policy, so the app role cannot delete
+-- users. current_setting(..., true) yields NULL when unset → zero rows, fails
+-- closed.
+CREATE POLICY org_isolation_select ON users
+    FOR SELECT USING (org_id = current_setting('app.current_org', true)::uuid);
+
+CREATE POLICY org_isolation_insert ON users
+    FOR INSERT WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+
+CREATE POLICY org_isolation_update ON users
+    FOR UPDATE USING (org_id = current_setting('app.current_org', true)::uuid)
     WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);

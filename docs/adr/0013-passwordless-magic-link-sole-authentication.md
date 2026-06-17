@@ -21,7 +21,7 @@ What differs is what redemption *grants*:
 Supporting decisions recorded here:
 
 - **Sessions live only in Redis.** The "sessions metadata" PLAN.md refers to is the JSON value stored in Redis (`{user_id, org_id, role, kind, scope}`), keyed by an opaque session id, TTL-driven. There is no Postgres `sessions` table. Such a table would itself straddle the pre-scope boundary (you need the session to know the org, but the table would be tenant-scoped), and Redis is the designated ephemeral store for sessions and tokens (ADR-0005). If durable session audit is ever required, it is an additive Phase-2+ table, not a Phase-1 dependency.
-- **Magic-link email is sent synchronously** in Phase 1. Login is a single, low-volume transactional email; the request renders and sends it inline via the `Mailer` interface (ADR-0007). Bulk, worker-driven magic-link email (120 accreditation invites at once) arrives in Phase 2 over River. A short send timeout keeps a slow SMTP hop from stretching the anti-enumeration response.
+- **Magic-link email is sent synchronously** in Phase 1. Login is a single, low-volume transactional email; the request renders and sends it inline via the `Mailer` interface (ADR-0007). Bulk, worker-driven magic-link email (120 accreditation invites at once) arrives in Phase 2 over River. The `LinkMailer` bounds the send with a short timeout (a `select` over the send and the deadline), so a slow or stalled SMTP hop cannot widen the response — on timeout the send may complete in the background while the caller's response returns. The primary anti-enumeration defence remains the byte-identical response body (proven in tests); the timeout bounds worst-case latency. A residual *typical-case* timing difference remains — the existing-user path also issues a token and dispatches a send — and is eliminated only when email moves fully off the request path (async send, Phase 2).
 - **Tokens are single-use and never stored raw.** The opaque token (≥256-bit) is stored in Redis under `magiclink:<sha256(token)>`; redemption is atomic via `GETDEL`, so a replayed link fails closed. Expiry is the Redis TTL.
 
 ## Alternatives Considered
@@ -62,6 +62,7 @@ Supporting decisions recorded here:
 - Every sign-in requires inbox access; an admin without their email cannot log in. Acceptable for the target users and offset by re-send.
 - Deliverability of the magic-link email becomes a first-class operational concern (ADR-0007 / open decision O2 on the production provider).
 - Synchronous send couples login latency to SMTP; mitigated by a short timeout and treating a timeout as a logged infra error while still returning the standard confirmation.
+- **Late-disable window:** `Redeem` builds the session from the token payload without re-reading the user's current status, so a user disabled *after* a link is issued can still redeem it until the token's TTL elapses (default 15 minutes). This is an accepted Phase-1 tradeoff — disabling is rare and admin-initiated, the window is short, and re-checking status on redeem would add a DB round-trip to the hot path. Phase 2 closes it (status re-check at redeem and/or active-session revocation when a user is disabled).
 
 ### Neutral
 

@@ -24,6 +24,10 @@ import (
 	"github.com/pubkraal/paddock/web"
 )
 
+// mailSendTimeout bounds how long a magic-link send may hold the request open,
+// so a slow SMTP relay cannot widen the anti-enumeration timing window.
+const mailSendTimeout = 5 * time.Second
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
@@ -61,7 +65,8 @@ func run(logger *slog.Logger) error {
 	tokens := identity.NewTokenStore(rdb, cfg.Auth.MagicLinkTTL)
 	sessions := identity.NewSessionStore(rdb, cfg.Auth.SessionTTL)
 	repo := identity.NewRepository(pool)
-	svc := identity.NewService(repo, tokens, sessions, identity.NewLinkMailer(mail), cfg.Auth.BaseURL, time.Now)
+	linkMailer := identity.NewLinkMailer(mail, mailSendTimeout)
+	svc := identity.NewService(repo, tokens, sessions, linkMailer, cfg.Auth.BaseURL, time.Now)
 
 	ih := identity.NewHandler(identity.HandlerConfig{
 		Service:      svc,

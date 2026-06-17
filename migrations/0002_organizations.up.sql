@@ -22,8 +22,18 @@ CREATE TABLE organizations (
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 
--- current_setting(..., true) returns NULL when the GUC is unset, so an unscoped
--- query sees zero rows rather than erroring — fails closed, gracefully.
-CREATE POLICY org_self ON organizations
-    USING (id = current_setting('app.current_org', true)::uuid)
+-- Policies are split per command for least privilege: the app role may read,
+-- insert, and update only its own org row, and may NOT delete (no FOR DELETE
+-- policy → deletes are denied/affect zero rows). A future phase that needs
+-- deletion adds an explicit FOR DELETE policy. current_setting(..., true)
+-- returns NULL when the GUC is unset, so an unscoped query sees zero rows rather
+-- than erroring — fails closed, gracefully.
+CREATE POLICY org_self_select ON organizations
+    FOR SELECT USING (id = current_setting('app.current_org', true)::uuid);
+
+CREATE POLICY org_self_insert ON organizations
+    FOR INSERT WITH CHECK (id = current_setting('app.current_org', true)::uuid);
+
+CREATE POLICY org_self_update ON organizations
+    FOR UPDATE USING (id = current_setting('app.current_org', true)::uuid)
     WITH CHECK (id = current_setting('app.current_org', true)::uuid);
