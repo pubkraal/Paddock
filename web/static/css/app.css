@@ -128,3 +128,53 @@ body {
   display: flex; align-items: flex-end; padding: 6px;
 }
 .swatch--accent .mono-label { color: #fff; }
+
+/* Access screens (Phase 1) — login + magic-link landings, Graphite theme. */
+.auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.auth--centered { grid-template-columns: 1fr; place-items: center; padding: 32px; }
+
+.auth__brand {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 64px 56px;
+  background:
+    radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, var(--accent) 16%, transparent) 0, transparent 55%),
+    var(--card);
+  border-right: 1px solid var(--border-strong);
+}
+
+.auth__brand-mark { display: flex; align-items: center; gap: 10px; }
+.auth__wordmark { font-size: 22px; font-weight: 800; letter-spacing: -.02em; }
+.auth__hero { font-size: 34px; font-weight: 800; letter-spacing: -.02em; margin: 24px 0 0; max-width: 12ch; }
+.auth__hero-sub { max-width: 46ch; }
+.auth__brand-foot { margin-top: auto; }
+
+.auth__panel { display: flex; align-items: center; justify-content: center; padding: 48px; }
+
+.auth__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 380px;
+  padding: var(--pad-card);
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+.auth--centered .auth__card { max-width: 460px; }
+
+.auth__title { font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin: 0; }
+.auth__subtitle { margin: 0; }
+.auth__form { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.auth__input { min-width: 0; width: 100%; }
+.auth__submit { width: 100%; text-align: center; text-decoration: none; }
+.auth__hint { margin: 0; }

@@ -2,6 +2,7 @@
 
 # ── Config ──────────────────────────────────────────────────────────────────
 MIGRATE_ROLE_URL ?= postgres://paddock_migrate:paddock_migrate@localhost:5432/paddock?sslmode=disable
+APP_ROLE_URL     ?= postgres://paddock_app:paddock_app@localhost:5432/paddock?sslmode=disable
 GOLANGCI_CFG     := build/ci/golangci.yml
 MIGRATIONS_DIR   := migrations
 
@@ -21,7 +22,16 @@ down: ## Stop the local backing services
 	docker compose -f deploy/docker-compose.yml down
 
 .PHONY: run
-run: up migrate ## Bring the stack up and run cmd/web
+run: up migrate ## Bring the stack up and run cmd/web (dev env, cookies over http)
+	DATABASE_URL="$(APP_ROLE_URL)" \
+	PADDOCK_BASE_URL="http://localhost:8080" \
+	PADDOCK_MAIL_FROM="no-reply@paddock.local" \
+	PADDOCK_COOKIE_SECURE="false" \
+	PADDOCK_SMTP_ADDR="localhost:1025" \
+	S3_ENDPOINT="http://localhost:9000" \
+	S3_ACCESS_KEY_ID="minioadmin" \
+	S3_SECRET_ACCESS_KEY="minioadmin" \
+	S3_BUCKET="paddock-dev" \
 	go run ./cmd/web
 
 # ── Migrations (run as the BYPASSRLS migration role) ─────────────────────────
@@ -34,6 +44,10 @@ migrate: ## Apply app migrations (golang-migrate) then River's own schema
 migrate-down: ## Roll back River's schema then one app migration
 	go tool river migrate-down --database-url "$(MIGRATE_ROLE_URL)" --line main --target-version 0
 	migrate -path $(MIGRATIONS_DIR) -database "$(MIGRATE_ROLE_URL)" down 1
+
+.PHONY: seed
+seed: ## Seed dev orgs + admins (idempotent); prints the sign-in emails
+	DATABASE_URL="$(MIGRATE_ROLE_URL)" go run ./cmd/seed
 
 # ── Build / format / lint / test (mirror the CLAUDE.md pre-commit gates) ─────
 .PHONY: build

@@ -1,0 +1,9 @@
+{{define "link_sent" -}}
+<div class="auth__card" id="auth-card">
+  <h2 class="auth__title">Check your inbox</h2>
+  <p class="muted auth__subtitle">If an account exists for
+    <span class="data">{{.Email}}</span>, a single-use sign-in link is on its way.
+    It expires shortly.</p>
+  <p class="mono-label auth__hint">Didn't arrive? Check spam, or request another from the sign-in page.</p>
+</div>
+{{- end}}

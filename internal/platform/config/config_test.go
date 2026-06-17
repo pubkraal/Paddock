@@ -20,6 +20,8 @@ func completeEnv() map[string]string {
 		"S3_ACCESS_KEY_ID":     "minioadmin",
 		"S3_SECRET_ACCESS_KEY": "minioadmin",
 		"S3_BUCKET":            "paddock-eu",
+		"PADDOCK_BASE_URL":     "https://paddock.test",
+		"PADDOCK_MAIL_FROM":    "no-reply@paddock.test",
 	}
 }
 
@@ -53,6 +55,100 @@ func TestLoadWeb_Defaults(t *testing.T) {
 
 	if cfg.Postgres.URL != completeEnv()["DATABASE_URL"] {
 		t.Errorf("Postgres.URL = %q, want the DATABASE_URL", cfg.Postgres.URL)
+	}
+}
+
+func TestLoadWeb_AuthAndMailerDefaults(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := config.LoadWeb(envFrom(completeEnv()))
+	if err != nil {
+		t.Fatalf("LoadWeb: %v", err)
+	}
+
+	if cfg.Auth.BaseURL != "https://paddock.test" {
+		t.Errorf("Auth.BaseURL = %q, want the PADDOCK_BASE_URL", cfg.Auth.BaseURL)
+	}
+
+	if cfg.Auth.SessionTTL != 12*time.Hour {
+		t.Errorf("Auth.SessionTTL = %v, want default 12h", cfg.Auth.SessionTTL)
+	}
+
+	if cfg.Auth.MagicLinkTTL != 15*time.Minute {
+		t.Errorf("Auth.MagicLinkTTL = %v, want default 15m", cfg.Auth.MagicLinkTTL)
+	}
+
+	if !cfg.Auth.CookieSecure {
+		t.Error("Auth.CookieSecure = false, want secure-by-default")
+	}
+
+	if cfg.Mailer.SMTPAddr != "localhost:1025" {
+		t.Errorf("Mailer.SMTPAddr = %q, want default Mailpit addr", cfg.Mailer.SMTPAddr)
+	}
+
+	if cfg.Mailer.From != "no-reply@paddock.test" {
+		t.Errorf("Mailer.From = %q, want the PADDOCK_MAIL_FROM", cfg.Mailer.From)
+	}
+}
+
+func TestLoadWeb_AuthAndMailerOverrides(t *testing.T) {
+	t.Parallel()
+
+	env := completeEnv()
+	env["PADDOCK_SESSION_TTL"] = "4h"
+	env["PADDOCK_MAGICLINK_TTL"] = "5m"
+	env["PADDOCK_COOKIE_SECURE"] = "false"
+	env["PADDOCK_SMTP_ADDR"] = "mail:2525"
+
+	cfg, err := config.LoadWeb(envFrom(env))
+	if err != nil {
+		t.Fatalf("LoadWeb: %v", err)
+	}
+
+	if cfg.Auth.SessionTTL != 4*time.Hour {
+		t.Errorf("Auth.SessionTTL = %v, want 4h override", cfg.Auth.SessionTTL)
+	}
+
+	if cfg.Auth.MagicLinkTTL != 5*time.Minute {
+		t.Errorf("Auth.MagicLinkTTL = %v, want 5m override", cfg.Auth.MagicLinkTTL)
+	}
+
+	if cfg.Auth.CookieSecure {
+		t.Error("Auth.CookieSecure = true, want override to false")
+	}
+
+	if cfg.Mailer.SMTPAddr != "mail:2525" {
+		t.Errorf("Mailer.SMTPAddr = %q, want override", cfg.Mailer.SMTPAddr)
+	}
+}
+
+func TestLoadWeb_MissingAuthMailerRequired(t *testing.T) {
+	t.Parallel()
+
+	env := completeEnv()
+	delete(env, "PADDOCK_BASE_URL")
+	delete(env, "PADDOCK_MAIL_FROM")
+
+	_, err := config.LoadWeb(envFrom(env))
+	if err == nil {
+		t.Fatal("expected error for missing required auth/mailer vars, got nil")
+	}
+
+	for _, key := range []string{"PADDOCK_BASE_URL", "PADDOCK_MAIL_FROM"} {
+		if !strings.Contains(err.Error(), key) {
+			t.Errorf("error %q should name missing key %q", err.Error(), key)
+		}
+	}
+}
+
+func TestLoadWeb_InvalidSessionTTL(t *testing.T) {
+	t.Parallel()
+
+	env := completeEnv()
+	env["PADDOCK_SESSION_TTL"] = "forever"
+
+	if _, err := config.LoadWeb(envFrom(env)); err == nil {
+		t.Fatal("expected error for invalid session TTL, got nil")
 	}
 }
 

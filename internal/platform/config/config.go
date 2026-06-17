@@ -46,12 +46,30 @@ type HTTP struct {
 	ShutdownTimeout time.Duration
 }
 
+// Auth is the passwordless magic-link session config (ADR-0013). BaseURL is the
+// externally-reachable origin used to build magic-link URLs.
+type Auth struct {
+	BaseURL      string
+	SessionTTL   time.Duration
+	MagicLinkTTL time.Duration
+	CookieSecure bool
+}
+
+// Mailer is the SMTP transport config (ADR-0007). SMTPAddr defaults to the dev
+// Mailpit sink; From is the envelope/From address on outbound mail.
+type Mailer struct {
+	SMTPAddr string
+	From     string
+}
+
 // Web is the full configuration for cmd/web.
 type Web struct {
 	HTTP        HTTP
 	Postgres    Postgres
 	Redis       Redis
 	ObjectStore ObjectStore
+	Auth        Auth
+	Mailer      Mailer
 }
 
 // Worker is the full configuration for cmd/worker.
@@ -81,6 +99,8 @@ func LoadWeb(getenv func(string) string) (Web, error) {
 		Postgres:    r.postgres(),
 		Redis:       r.redis(),
 		ObjectStore: r.objectStore(),
+		Auth:        r.auth(),
+		Mailer:      r.mailer(),
 	}
 
 	if err := r.err(); err != nil {
@@ -225,6 +245,22 @@ func (r *reader) positiveOrZeroInt(key string, def int) int {
 	}
 
 	return n
+}
+
+func (r *reader) auth() Auth {
+	return Auth{
+		BaseURL:      r.required("PADDOCK_BASE_URL"),
+		SessionTTL:   r.duration("PADDOCK_SESSION_TTL", 12*time.Hour),
+		MagicLinkTTL: r.duration("PADDOCK_MAGICLINK_TTL", 15*time.Minute),
+		CookieSecure: r.boolean("PADDOCK_COOKIE_SECURE", true),
+	}
+}
+
+func (r *reader) mailer() Mailer {
+	return Mailer{
+		SMTPAddr: r.optional("PADDOCK_SMTP_ADDR", "localhost:1025"),
+		From:     r.required("PADDOCK_MAIL_FROM"),
+	}
 }
 
 func (r *reader) objectStore() ObjectStore {

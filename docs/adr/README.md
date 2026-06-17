@@ -19,6 +19,8 @@ ADRs are permanent. When a decision is superseded by a later one, the original A
 | [ADR-0009](0009-data-access-pgx-hand-written-sql-two-tier-testing.md) | Data Access — pgx via database/sql Adapter, Hand-Written SQL, Two-Tier Testing | Accepted | 2026-06-16 |
 | [ADR-0010](0010-delivery-presigned-urls-licence-event-at-issue.md) | Delivery via Short-Lived Presigned S3 URLs; Licence Event Logged at Issue Time | Accepted | 2026-06-16 |
 | [ADR-0011](0011-local-dev-ci-docker-compose-testcontainers.md) | Local Dev and CI via docker-compose and testcontainers-go | Accepted | 2026-06-16 |
+| [ADR-0012](0012-rls-bootstrap-identity-lookup-security-definer.md) | RLS-Bootstrap Identity Lookup via a SECURITY DEFINER Function | Accepted | 2026-06-17 |
+| [ADR-0013](0013-passwordless-magic-link-sole-authentication.md) | Passwordless Magic-Link as the Sole Authentication Mechanism | Accepted | 2026-06-17 |
 
 ## Tags
 
@@ -30,10 +32,11 @@ ADRs are permanent. When a decision is superseded by a later one, the original A
 | jobs / async | ADR-0005 |
 | image-processing | ADR-0006 |
 | email | ADR-0007 |
-| multitenancy | ADR-0008, ADR-0009 |
+| multitenancy | ADR-0008, ADR-0009, ADR-0012 |
 | data-access | ADR-0009 |
 | delivery | ADR-0010 |
 | testing | ADR-0009, ADR-0011 |
 | developer-experience | ADR-0011 |
 | eu-residency | ADR-0003, ADR-0007 |
-| security | ADR-0008, ADR-0010 |
+| security | ADR-0008, ADR-0010, ADR-0012, ADR-0013 |
+| identity / auth | ADR-0012, ADR-0013 |

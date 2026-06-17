@@ -1,0 +1,16 @@
+{{define "granted" -}}
+{{template "head" .}}
+<main class="auth auth--centered">
+  <div class="auth__card">
+    <span class="badge badge--blue"><span class="badge__dot"></span><span class="badge__label">Access</span></span>
+    <h2 class="auth__title">You've been granted access</h2>
+    <p class="muted auth__subtitle"><span class="data">{{.Email}}</span> — no account needed,
+      this link is your key.</p>
+    <p class="mono-label">Org {{.OrgID}}</p>
+    <form method="post" action="/logout">
+      <button class="btn auth__submit" type="submit">Sign out</button>
+    </form>
+  </div>
+</main>
+{{template "foot" .}}
+{{- end}}

@@ -1,6 +1,7 @@
 // Command web serves the Paddock admin UI, branded portals, and delivery
-// endpoints (ADR-0001). Phase 0 boots the walking skeleton: health endpoints,
-// the static asset server, and the throwaway /_styleguide route.
+// endpoints (ADR-0001). Phase 1 adds passwordless magic-link access: the login
+// and landing screens, the magic-link request/redeem flow, and Redis-backed
+// sessions, alongside the Phase 0 health, static, and styleguide routes.
 package main
 
 import (
@@ -9,16 +10,23 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/pubkraal/paddock/internal/identity"
 	"github.com/pubkraal/paddock/internal/platform/config"
 	"github.com/pubkraal/paddock/internal/platform/httpx"
+	"github.com/pubkraal/paddock/internal/platform/mailer"
 	"github.com/pubkraal/paddock/internal/platform/objectstore"
 	"github.com/pubkraal/paddock/internal/platform/postgres"
 	"github.com/pubkraal/paddock/internal/platform/redis"
 	"github.com/pubkraal/paddock/internal/platform/runtime"
 	"github.com/pubkraal/paddock/web"
 )
+
+// mailSendTimeout bounds how long a magic-link send may hold the request open,
+// so a slow SMTP relay cannot widen the anti-enumeration timing window.
+const mailSendTimeout = 5 * time.Second
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -53,6 +61,22 @@ func run(logger *slog.Logger) error {
 		return err
 	}
 
+	mail := mailer.NewSMTPMailer(cfg.Mailer.SMTPAddr, cfg.Mailer.From)
+	tokens := identity.NewTokenStore(rdb, cfg.Auth.MagicLinkTTL)
+	sessions := identity.NewSessionStore(rdb, cfg.Auth.SessionTTL)
+	repo := identity.NewRepository(pool)
+	linkMailer := identity.NewLinkMailer(mail, mailSendTimeout)
+	svc := identity.NewService(repo, tokens, sessions, linkMailer, cfg.Auth.BaseURL, time.Now)
+
+	ih := identity.NewHandler(identity.HandlerConfig{
+		Service:      svc,
+		Users:        repo,
+		Renderer:     renderer,
+		Logger:       logger,
+		CookieSecure: cfg.Auth.CookieSecure,
+		SessionTTL:   cfg.Auth.SessionTTL,
+	})
+
 	router := httprouter.New()
 	router.HandlerFunc("GET", "/healthz", httpx.Healthz())
 	router.HandlerFunc("GET", "/readyz", httpx.Readyz(map[string]httpx.Check{
@@ -62,6 +86,15 @@ func run(logger *slog.Logger) error {
 	}))
 	router.HandlerFunc("GET", "/_styleguide", renderer.PageHandler("styleguide"))
 	router.Handler("GET", "/static/*filepath", web.StaticHandler())
+
+	router.HandlerFunc("GET", "/login", ih.LoginPage())
+	router.HandlerFunc("POST", "/auth/magic", ih.RequestLink())
+	router.HandlerFunc("GET", "/auth/redeem", ih.Redeem())
+	router.HandlerFunc("POST", "/logout", ih.Logout())
+
+	authenticate := identity.Authenticate(sessions)
+	router.Handler("GET", "/admin", httpx.Chain(ih.AdminHome(), authenticate, identity.RequireAdmin))
+	router.Handler("GET", "/portal", httpx.Chain(ih.PortalHome(), authenticate))
 
 	handler := httpx.Chain(router, httpx.RequestID, httpx.Recovery(logger), httpx.Logging(logger))
 	server := httpx.NewServer("web", cfg.HTTP.Addr, handler, logger)
