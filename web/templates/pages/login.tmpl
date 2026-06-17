@@ -1,0 +1,34 @@
+{{define "login" -}}
+{{template "head" .}}
+<main class="auth">
+  <section class="auth__brand">
+    <div class="auth__brand-mark">
+      <span class="logo" aria-hidden="true"></span>
+      <span class="auth__wordmark">Paddock</span>
+    </div>
+    <h1 class="auth__hero">Run the race weekend from shutter to download.</h1>
+    <p class="auth__hero-sub muted">Ingest at trackside speed · enrichment from timing data ·
+      embargoes that enforce themselves · audit on every download.</p>
+    <p class="mono-label auth__brand-foot">Event media operations platform · v1</p>
+  </section>
+
+  <section class="auth__panel">
+    <div class="auth__card" id="auth-card">
+      {{if .Sent}}
+        {{template "link_sent" .}}
+      {{else}}
+        <h2 class="auth__title">Sign in to your organization</h2>
+        <p class="muted auth__subtitle">Press officers &amp; org staff. No password — we send a magic link.</p>
+        <form class="auth__form" method="post" action="/auth/magic"
+              hx-post="/auth/magic" hx-target="#auth-card" hx-swap="outerHTML">
+          <label class="mono-label" for="email">Work email</label>
+          <input class="input auth__input" id="email" name="email" type="email"
+                 autocomplete="email" placeholder="s.bauer@nls-media.de" required>
+          <button class="btn btn--primary auth__submit" type="submit">Send magic link →</button>
+        </form>
+      {{end}}
+    </div>
+  </section>
+</main>
+{{template "foot" .}}
+{{- end}}

@@ -1,0 +1,13 @@
+{{define "redeem_invalid" -}}
+{{template "head" .}}
+<main class="auth auth--centered">
+  <div class="auth__card">
+    <span class="badge badge--red"><span class="badge__dot"></span><span class="badge__label">Expired</span></span>
+    <h2 class="auth__title">This link is no longer valid</h2>
+    <p class="muted auth__subtitle">Magic links are single-use and time-limited. It may already have been
+      used or it may have expired.</p>
+    <a class="btn btn--primary auth__submit" href="/login">Request a new link →</a>
+  </div>
+</main>
+{{template "foot" .}}
+{{- end}}

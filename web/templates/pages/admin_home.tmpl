@@ -1,0 +1,16 @@
+{{define "admin_home" -}}
+{{template "head" .}}
+<main class="auth auth--centered">
+  <div class="auth__card">
+    <span class="badge badge--green"><span class="badge__dot"></span><span class="badge__label">Signed in</span></span>
+    <h2 class="auth__title">Welcome back</h2>
+    <p class="muted auth__subtitle">Signed in as <span class="data">{{.Email}}</span>
+      · role <span class="data">{{.Role}}</span></p>
+    <p class="mono-label">Org {{.OrgID}}</p>
+    <form method="post" action="/logout">
+      <button class="btn auth__submit" type="submit">Sign out</button>
+    </form>
+  </div>
+</main>
+{{template "foot" .}}
+{{- end}}
