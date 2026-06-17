@@ -1,0 +1,7 @@
+{{define "import_error" -}}
+<div class="card" style="border-color:var(--flag-red)">
+  <span class="badge badge--red"><span class="badge__dot"></span><span class="badge__label">Import failed</span></span>
+  <p class="muted" style="margin-top:10px">{{.}}</p>
+  <p class="mono-label">Fix the file and try again — nothing was imported.</p>
+</div>
+{{- end}}

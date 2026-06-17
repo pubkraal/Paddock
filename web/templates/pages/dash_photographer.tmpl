@@ -1,0 +1,36 @@
+{{define "dash_photographer" -}}
+{{/* Photographer (media-tier) portal. Phase 2 wires identity + access; the
+     transmit feed, FTP panel and earnings land in Phases 4/8/9 — shown as
+     placeholders below, not fabricated live data. */}}
+{{template "head" .}}
+<div class="shell">
+  <header class="topbar">
+    <div class="topbar__brand">
+      <span class="logo" aria-hidden="true"></span>
+      <span class="topbar__wordmark">Paddock Studio</span>
+      <span class="badge badge--yellow"><span class="badge__dot"></span><span class="badge__label">Accredited · media</span></span>
+    </div>
+    <div class="topbar__meta">
+      <span class="mono-label">Org {{.OrgID}}</span>
+      <form method="post" action="/logout"><button class="btn btn--ghost" type="submit">Sign out</button></form>
+    </div>
+  </header>
+  <main class="main">
+    <div class="main__head">
+      <h1 class="main__title">Your coverage</h1>
+      <a class="btn btn--primary auth__submit" style="width:auto" href="#">↥ Upload photos</a>
+    </div>
+    <section class="grid grid--kpi">
+      <div class="card kpi"><span class="mono-label">Transmitted</span><span class="kpi__value stub">—</span><span class="mono-label stub">ingest · Phase 4</span></div>
+      <div class="card kpi"><span class="mono-label">Selected</span><span class="kpi__value stub">—</span><span class="mono-label stub">curation · Phase 5</span></div>
+      <div class="card kpi"><span class="mono-label">Published</span><span class="kpi__value stub">—</span><span class="mono-label stub">delivery · Phase 8</span></div>
+      <div class="card kpi"><span class="mono-label">Earnings</span><span class="kpi__value stub">—</span><span class="mono-label stub">billing · Phase 9</span></div>
+    </section>
+    <section class="card">
+      <span class="mono-label card__label">Your rights</span>
+      <p class="muted">Copyright retained — © on every frame · licence-back to organizer, editorial only · IPTC/XMP preserved untouched.</p>
+    </section>
+  </main>
+</div>
+{{template "foot" .}}
+{{- end}}

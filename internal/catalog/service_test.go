@@ -31,6 +31,10 @@ type mockStore struct {
 
 	accCreated bool
 
+	consumerTier      catalog.Tier
+	consumerTierFound bool
+	consumerTierErr   error
+
 	insertedSessions []catalog.SessionSpec
 	insertedEntries  []catalog.Entry
 	insertedAccs     []catalog.Accreditation
@@ -106,6 +110,10 @@ func (m *mockStore) CountEntriesTx(context.Context, *sql.Tx, string) (int, error
 
 func (m *mockStore) CountAccreditationsByTierTx(context.Context, *sql.Tx, string) (map[catalog.Tier]int, error) {
 	return m.tierCounts, m.countTierErr
+}
+
+func (m *mockStore) ConsumerTierTx(context.Context, *sql.Tx, string) (catalog.Tier, bool, error) {
+	return m.consumerTier, m.consumerTierFound, m.consumerTierErr
 }
 
 type mockProvisioner struct {
@@ -304,6 +312,45 @@ func TestService_EventDetail_Errors(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestService_ConsumerTier(t *testing.T) {
+	t.Parallel()
+
+	t.Run("found", func(t *testing.T) {
+		t.Parallel()
+
+		store := &mockStore{consumerTier: catalog.TierSponsor, consumerTierFound: true}
+		svc := catalog.NewService(store, &mockProvisioner{}, &mockEnqueuer{})
+
+		tier, err := svc.ConsumerTier(context.Background(), "org-1", "user-1")
+		if err != nil || tier != catalog.TierSponsor {
+			t.Fatalf("tier = %q err = %v, want sponsor", tier, err)
+		}
+	})
+
+	t.Run("default media when none", func(t *testing.T) {
+		t.Parallel()
+
+		store := &mockStore{consumerTierFound: false}
+		svc := catalog.NewService(store, &mockProvisioner{}, &mockEnqueuer{})
+
+		tier, err := svc.ConsumerTier(context.Background(), "org-1", "user-1")
+		if err != nil || tier != catalog.TierMedia {
+			t.Fatalf("tier = %q err = %v, want media default", tier, err)
+		}
+	})
+
+	t.Run("error", func(t *testing.T) {
+		t.Parallel()
+
+		store := &mockStore{consumerTierErr: errBoomSvc}
+		svc := catalog.NewService(store, &mockProvisioner{}, &mockEnqueuer{})
+
+		if _, err := svc.ConsumerTier(context.Background(), "org-1", "user-1"); !errors.Is(err, errBoomSvc) {
+			t.Fatalf("err = %v, want errBoomSvc", err)
+		}
+	})
 }
 
 func entrySheet() tabular.Sheet {

@@ -31,6 +31,7 @@ type (
 		InsertAccreditationTx(ctx context.Context, tx *sql.Tx, a Accreditation) (string, bool, error)
 		CountEntriesTx(ctx context.Context, tx *sql.Tx, eventID string) (int, error)
 		CountAccreditationsByTierTx(ctx context.Context, tx *sql.Tx, eventID string) (map[Tier]int, error)
+		ConsumerTierTx(ctx context.Context, tx *sql.Tx, userID string) (Tier, bool, error)
 	}
 
 	consumerProvisioner interface {
@@ -156,6 +157,31 @@ type EventDetail struct {
 	Sessions   []Session
 	EntryCount int
 	TierCounts map[Tier]int
+}
+
+// ConsumerTier resolves a consumer's accreditation tier, defaulting to TierMedia
+// when the consumer has no accreditation yet (so the portal always has a
+// dashboard to show).
+func (s *Service) ConsumerTier(ctx context.Context, orgID, userID string) (Tier, error) {
+	tier := TierMedia
+
+	err := s.store.WithOrg(ctx, orgID, func(ctx context.Context, tx *sql.Tx) error {
+		t, found, e := s.store.ConsumerTierTx(ctx, tx, userID)
+		if e != nil {
+			return e
+		}
+
+		if found {
+			tier = t
+		}
+
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return tier, nil
 }
 
 // EventDetail loads an event, its sessions, and its import counts in one

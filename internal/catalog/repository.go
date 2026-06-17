@@ -290,6 +290,27 @@ func (r *Repository) InsertAccreditationTx(ctx context.Context, tx *sql.Tx, a Ac
 	return id, true, nil
 }
 
+const consumerTierSQL = `
+SELECT tier FROM accreditations WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1`
+
+// ConsumerTierTx returns the accreditation tier of a consumer (their most recent
+// accreditation in scope), and whether one was found — used to route a consumer
+// to their portal dashboard.
+func (r *Repository) ConsumerTierTx(ctx context.Context, tx *sql.Tx, userID string) (Tier, bool, error) {
+	var tier string
+
+	err := tx.QueryRowContext(ctx, consumerTierSQL, userID).Scan(&tier)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+
+	if err != nil {
+		return "", false, fmt.Errorf("catalog: consumer tier: %w", err)
+	}
+
+	return Tier(tier), true, nil
+}
+
 const countEntriesSQL = `SELECT count(*) FROM entries e
 JOIN entry_lists l ON l.id = e.entry_list_id WHERE l.event_id = $1`
 

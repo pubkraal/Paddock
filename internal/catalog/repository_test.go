@@ -774,6 +774,73 @@ func TestRepository_InsertAccreditationError(t *testing.T) {
 	}
 }
 
+func TestRepository_ConsumerTier(t *testing.T) {
+	t.Parallel()
+
+	pool, mock := newMock(t)
+	repo := catalog.NewRepository(pool)
+
+	mock.ExpectBegin()
+	mock.ExpectExec("set_config").WithArgs("org-1").WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectQuery("FROM accreditations WHERE user_id").
+		WithArgs("user-1").
+		WillReturnRows(sqlmock.NewRows([]string{"tier"}).AddRow("team"))
+	mock.ExpectCommit()
+
+	var (
+		tier  catalog.Tier
+		found bool
+	)
+
+	err := repo.WithOrg(context.Background(), "org-1", func(ctx context.Context, tx *sql.Tx) error {
+		var e error
+		tier, found, e = repo.ConsumerTierTx(ctx, tx, "user-1")
+
+		return e
+	})
+	if err != nil || !found || tier != catalog.TierTeam {
+		t.Fatalf("ConsumerTierTx tier=%q found=%v err=%v", tier, found, err)
+	}
+}
+
+func TestRepository_ConsumerTierNotFound(t *testing.T) {
+	t.Parallel()
+
+	pool, mock := newMock(t)
+	repo := catalog.NewRepository(pool)
+
+	var found bool
+
+	err := inOrg(t, repo, mock, true, func(tx *sql.Tx) error {
+		mock.ExpectQuery("FROM accreditations WHERE user_id").WithArgs("ghost").WillReturnError(sql.ErrNoRows)
+
+		var e error
+		_, found, e = repo.ConsumerTierTx(context.Background(), tx, "ghost")
+
+		return e
+	})
+	if err != nil || found {
+		t.Fatalf("found=%v err=%v, want not found no error", found, err)
+	}
+}
+
+func TestRepository_ConsumerTierError(t *testing.T) {
+	t.Parallel()
+
+	pool, mock := newMock(t)
+	repo := catalog.NewRepository(pool)
+
+	err := inOrg(t, repo, mock, false, func(tx *sql.Tx) error {
+		mock.ExpectQuery("FROM accreditations WHERE user_id").WithArgs("user-1").WillReturnError(errBoom)
+		_, _, e := repo.ConsumerTierTx(context.Background(), tx, "user-1")
+
+		return e
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestRepository_CountEntries(t *testing.T) {
 	t.Parallel()
 
