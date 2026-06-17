@@ -27,6 +27,7 @@ type sessionValue struct {
 	Role   Role   `json:"role"`
 	Kind   Kind   `json:"kind"`
 	Scope  string `json:"scope"`
+	CSRF   string `json:"csrf"`
 }
 
 // SessionStore creates, loads, and deletes Redis-backed sessions (ADR-0013).
@@ -51,12 +52,18 @@ func (s *SessionStore) Create(ctx context.Context, sess Session) (string, error)
 		return "", fmt.Errorf("identity: generate session id: %w", err)
 	}
 
+	csrf, err := generateToken(s.rand)
+	if err != nil {
+		return "", fmt.Errorf("identity: generate csrf token: %w", err)
+	}
+
 	payload, err := s.marshal(sessionValue{
 		UserID: sess.UserID,
 		OrgID:  sess.OrgID,
 		Role:   sess.Role,
 		Kind:   sess.Kind,
 		Scope:  sess.Scope,
+		CSRF:   csrf,
 	})
 	if err != nil {
 		return "", fmt.Errorf("identity: marshal session: %w", err)
@@ -87,12 +94,13 @@ func (s *SessionStore) Get(ctx context.Context, id string) (Session, error) {
 	}
 
 	return Session{
-		ID:     id,
-		UserID: v.UserID,
-		OrgID:  v.OrgID,
-		Role:   v.Role,
-		Kind:   v.Kind,
-		Scope:  v.Scope,
+		ID:        id,
+		UserID:    v.UserID,
+		OrgID:     v.OrgID,
+		Role:      v.Role,
+		Kind:      v.Kind,
+		Scope:     v.Scope,
+		CSRFToken: v.CSRF,
 	}, nil
 }
 

@@ -109,7 +109,9 @@ func run(logger *slog.Logger) error {
 	router.HandlerFunc("POST", "/logout", ih.Logout())
 
 	authenticate := identity.Authenticate(sessions)
-	admin := func(h http.Handler) http.Handler { return httpx.Chain(h, authenticate, identity.RequireAdmin) }
+	admin := func(h http.Handler) http.Handler {
+		return httpx.Chain(h, authenticate, identity.RequireAdmin, identity.RequireCSRF)
+	}
 
 	router.Handler("GET", "/admin", admin(ch.Dashboard()))
 	router.Handler("GET", "/admin/events/new", admin(ch.NewEvent()))

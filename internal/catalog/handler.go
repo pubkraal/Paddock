@@ -63,12 +63,14 @@ type dashboardData struct {
 
 type wizardData struct {
 	Templates []OnboardingTemplate
+	CSRF      string
 }
 
 type eventStepData struct {
 	Detail    EventDetail
 	EntryList *EntryPreview
 	Accred    *AccreditationResult
+	CSRF      string
 }
 
 type portalData struct {
@@ -104,7 +106,8 @@ func (h *Handler) Dashboard() http.HandlerFunc {
 // NewEvent renders the event-setup wizard (template cards + the event form).
 func (h *Handler) NewEvent() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		h.render(r.Context(), w, "setup_wizard", wizardData{Templates: Templates()})
+		id, _ := identity.IdentityFromContext(r.Context())
+		h.render(r.Context(), w, "setup_wizard", wizardData{Templates: Templates(), CSRF: id.CSRFToken})
 	}
 }
 
@@ -136,7 +139,7 @@ func (h *Handler) CreateEvent() http.HandlerFunc {
 			return
 		}
 
-		h.renderEventStep(r.Context(), w, id.OrgID, event.ID, eventStepData{})
+		h.renderEventStep(r.Context(), w, id, event.ID, eventStepData{})
 	}
 }
 
@@ -166,7 +169,7 @@ func (h *Handler) UploadEntryList() http.HandlerFunc {
 			return
 		}
 
-		h.renderEventStep(r.Context(), w, id.OrgID, eventID, eventStepData{EntryList: &preview})
+		h.renderEventStep(r.Context(), w, id, eventID, eventStepData{EntryList: &preview})
 	}
 }
 
@@ -197,7 +200,7 @@ func (h *Handler) UploadAccreditation() http.HandlerFunc {
 			return
 		}
 
-		h.renderEventStep(r.Context(), w, id.OrgID, eventID, eventStepData{Accred: &result})
+		h.renderEventStep(r.Context(), w, id, eventID, eventStepData{Accred: &result})
 	}
 }
 
@@ -268,9 +271,12 @@ func dashboardForTier(tier Tier) string {
 }
 
 // renderEventStep loads the event's current detail and renders the import step,
-// carrying any just-imported result for its fragment.
-func (h *Handler) renderEventStep(ctx context.Context, w http.ResponseWriter, orgID, eventID string, step eventStepData) {
-	detail, err := h.svc.EventDetail(ctx, orgID, eventID)
+// carrying any just-imported result for its fragment and the caller's CSRF token
+// for the embedded forms.
+func (h *Handler) renderEventStep(
+	ctx context.Context, w http.ResponseWriter, id identity.Identity, eventID string, step eventStepData,
+) {
+	detail, err := h.svc.EventDetail(ctx, id.OrgID, eventID)
 	if err != nil {
 		h.fail(ctx, w, "event detail", err)
 
@@ -278,6 +284,7 @@ func (h *Handler) renderEventStep(ctx context.Context, w http.ResponseWriter, or
 	}
 
 	step.Detail = detail
+	step.CSRF = id.CSRFToken
 	h.render(ctx, w, "wizard_event", step)
 }
 

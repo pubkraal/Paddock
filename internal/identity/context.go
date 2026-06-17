@@ -10,11 +10,12 @@ const identityKey ctxKey = iota
 // into the request context by Authenticate. Handlers read it to gate access and
 // to scope tenant queries via postgres.WithOrg using OrgID.
 type Identity struct {
-	UserID string
-	OrgID  string
-	Role   Role
-	Kind   Kind
-	Scope  string
+	UserID    string
+	OrgID     string
+	Role      Role
+	Kind      Kind
+	Scope     string
+	CSRFToken string
 }
 
 func withIdentity(ctx context.Context, id Identity) context.Context {

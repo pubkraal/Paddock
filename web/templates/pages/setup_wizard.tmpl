@@ -15,7 +15,9 @@
 
   <main class="main" id="wizard">
     <form class="split" method="post" action="/admin/events"
-          hx-post="/admin/events" hx-target="#wizard" hx-swap="innerHTML">
+          hx-post="/admin/events" hx-target="#wizard" hx-swap="innerHTML"
+          hx-headers='{"X-CSRF-Token": "{{.CSRF}}"}'>
+      <input type="hidden" name="_csrf" value="{{.CSRF}}">
       <section class="card">
         <span class="mono-label card__label">Start from template</span>
         <div class="tmpl-grid">

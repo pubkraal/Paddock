@@ -18,7 +18,8 @@
     <span class="mono-label card__label">Entry list — CSV or XLSX</span>
     <form class="upload" method="post" action="/admin/events/{{$ev.ID}}/entry-list"
           hx-post="/admin/events/{{$ev.ID}}/entry-list" hx-target="#wizard" hx-swap="innerHTML"
-          hx-encoding="multipart/form-data" enctype="multipart/form-data">
+          hx-encoding="multipart/form-data" enctype="multipart/form-data"
+          hx-headers='{"X-CSRF-Token": "{{$.CSRF}}"}'>
       <div class="upload__row">
         <input class="input" type="file" name="file" accept=".csv,.xlsx" required>
         <button class="btn btn--primary" type="submit">Import</button>
@@ -48,7 +49,8 @@
     <span class="mono-label card__label">Accreditation — CSV or XLSX</span>
     <form class="upload" method="post" action="/admin/events/{{$ev.ID}}/accreditation"
           hx-post="/admin/events/{{$ev.ID}}/accreditation" hx-target="#wizard" hx-swap="innerHTML"
-          hx-encoding="multipart/form-data" enctype="multipart/form-data">
+          hx-encoding="multipart/form-data" enctype="multipart/form-data"
+          hx-headers='{"X-CSRF-Token": "{{$.CSRF}}"}'>
       <div class="upload__row">
         <input class="input" type="file" name="file" accept=".csv,.xlsx" required>
         <button class="btn btn--primary" type="submit">Import &amp; invite</button>
@@ -67,6 +69,7 @@
     {{end}}
 
     <form method="post" action="/admin/events/{{$ev.ID}}/go-live" style="margin-top:16px">
+      <input type="hidden" name="_csrf" value="{{$.CSRF}}">
       <button class="btn btn--green auth__submit" type="submit">Go live →</button>
     </form>
   </section>
