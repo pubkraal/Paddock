@@ -72,10 +72,16 @@ type Web struct {
 	Mailer      Mailer
 }
 
-// Worker is the full configuration for cmd/worker.
+// Worker is the full configuration for cmd/worker. It carries Redis, Mailer and
+// Auth because the worker now sends accreditation-invite magic links (ADR-0016):
+// it issues consumer-grant tokens (Redis), builds links from Auth.BaseURL, and
+// sends them via the Mailer.
 type Worker struct {
 	Postgres        Postgres
+	Redis           Redis
 	ObjectStore     ObjectStore
+	Auth            Auth
+	Mailer          Mailer
 	Concurrency     int
 	ShutdownTimeout time.Duration
 }
@@ -115,7 +121,10 @@ func LoadWorker(getenv func(string) string) (Worker, error) {
 	r := newReader(getenv)
 	cfg := Worker{
 		Postgres:        r.postgres(),
+		Redis:           r.redis(),
 		ObjectStore:     r.objectStore(),
+		Auth:            r.auth(),
+		Mailer:          r.mailer(),
 		Concurrency:     r.positiveInt("WORKER_CONCURRENCY", 8),
 		ShutdownTimeout: r.duration("PADDOCK_SHUTDOWN_TIMEOUT", 30*time.Second),
 	}
