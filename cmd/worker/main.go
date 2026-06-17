@@ -1,7 +1,7 @@
 // Command worker drains the River job queue (ADR-0001, ADR-0005): ingest
-// processing, renditions, watermarks, ZIPs, email, embargo lifts. Phase 0 boots
-// the consumer loop with an empty worker registry; job types are registered by
-// later phases.
+// processing, renditions, watermarks, ZIPs, email, embargo lifts. Phase 2 adds
+// the first real job: accreditation invites, which issue a consumer-grant magic
+// link and email it (ADR-0016).
 package main
 
 import (
@@ -10,12 +10,21 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/pubkraal/paddock/internal/identity"
+	"github.com/pubkraal/paddock/internal/invite"
 	"github.com/pubkraal/paddock/internal/platform/config"
+	"github.com/pubkraal/paddock/internal/platform/mailer"
 	"github.com/pubkraal/paddock/internal/platform/postgres"
 	"github.com/pubkraal/paddock/internal/platform/queue"
+	"github.com/pubkraal/paddock/internal/platform/redis"
 	"github.com/pubkraal/paddock/internal/platform/runtime"
+	"github.com/riverqueue/river"
 )
+
+// inviteSendTimeout bounds how long an invite email send may block a worker job.
+const inviteSendTimeout = 10 * time.Second
 
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
@@ -40,7 +49,20 @@ func run(logger *slog.Logger) error {
 	}
 	defer func() { _ = pool.Close() }()
 
-	client, err := queue.NewWorkerClient(pool.SQL(), queue.DefaultWorkers(), cfg.Concurrency, logger)
+	rdb := redis.Open(cfg.Redis)
+	defer func() { _ = rdb.Close() }()
+
+	mail := mailer.NewSMTPMailer(cfg.Mailer.SMTPAddr, cfg.Mailer.From)
+	tokens := identity.NewTokenStore(rdb, cfg.Auth.MagicLinkTTL)
+	sessions := identity.NewSessionStore(rdb, cfg.Auth.SessionTTL)
+	idRepo := identity.NewRepository(pool)
+	linkMailer := identity.NewLinkMailer(mail, inviteSendTimeout)
+	idSvc := identity.NewService(idRepo, tokens, sessions, linkMailer, cfg.Auth.BaseURL, time.Now)
+
+	workers := queue.DefaultWorkers()
+	river.AddWorker(workers, invite.NewWorker(idSvc))
+
+	client, err := queue.NewWorkerClient(pool.SQL(), workers, cfg.Concurrency, logger)
 	if err != nil {
 		return err
 	}

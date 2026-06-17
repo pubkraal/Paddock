@@ -13,6 +13,7 @@ require (
 	github.com/redis/go-redis/v9 v9.20.1
 	github.com/riverqueue/river v0.39.0
 	github.com/riverqueue/river/riverdriver/riverdatabasesql v0.39.0
+	github.com/riverqueue/river/rivertype v0.39.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.42.0
 	github.com/xuri/excelize/v2 v2.10.1
 )
@@ -80,7 +81,6 @@ require (
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.39.0 // indirect
 	github.com/riverqueue/river/riverdriver/riversqlite v0.39.0 // indirect
 	github.com/riverqueue/river/rivershared v0.39.0 // indirect
-	github.com/riverqueue/river/rivertype v0.39.0 // indirect
 	github.com/shirou/gopsutil/v4 v4.26.3 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spf13/cobra v1.10.2 // indirect

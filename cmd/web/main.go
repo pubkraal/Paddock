@@ -7,18 +7,22 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/pubkraal/paddock/internal/catalog"
 	"github.com/pubkraal/paddock/internal/identity"
+	"github.com/pubkraal/paddock/internal/invite"
 	"github.com/pubkraal/paddock/internal/platform/config"
 	"github.com/pubkraal/paddock/internal/platform/httpx"
 	"github.com/pubkraal/paddock/internal/platform/mailer"
 	"github.com/pubkraal/paddock/internal/platform/objectstore"
 	"github.com/pubkraal/paddock/internal/platform/postgres"
+	"github.com/pubkraal/paddock/internal/platform/queue"
 	"github.com/pubkraal/paddock/internal/platform/redis"
 	"github.com/pubkraal/paddock/internal/platform/runtime"
 	"github.com/pubkraal/paddock/web"
@@ -77,6 +81,15 @@ func run(logger *slog.Logger) error {
 		SessionTTL:   cfg.Auth.SessionTTL,
 	})
 
+	insertClient, err := queue.NewInsertClient(pool.SQL(), logger)
+	if err != nil {
+		return err
+	}
+
+	catalogRepo := catalog.NewRepository(pool)
+	catalogSvc := catalog.NewService(catalogRepo, repo, invite.NewEnqueuer(insertClient))
+	ch := catalog.NewHandler(catalog.HandlerConfig{Service: catalogSvc, Renderer: renderer, Logger: logger})
+
 	router := httprouter.New()
 	router.HandlerFunc("GET", "/healthz", httpx.Healthz())
 	router.HandlerFunc("GET", "/readyz", httpx.Readyz(map[string]httpx.Check{
@@ -93,8 +106,16 @@ func run(logger *slog.Logger) error {
 	router.HandlerFunc("POST", "/logout", ih.Logout())
 
 	authenticate := identity.Authenticate(sessions)
-	router.Handler("GET", "/admin", httpx.Chain(ih.AdminHome(), authenticate, identity.RequireAdmin))
-	router.Handler("GET", "/portal", httpx.Chain(ih.PortalHome(), authenticate))
+	admin := func(h http.Handler) http.Handler { return httpx.Chain(h, authenticate, identity.RequireAdmin) }
+
+	router.Handler("GET", "/admin", admin(ch.Dashboard()))
+	router.Handler("GET", "/admin/events/new", admin(ch.NewEvent()))
+	router.Handler("POST", "/admin/events", admin(ch.CreateEvent()))
+	router.Handler("POST", "/admin/events/:id/entry-list", admin(ch.UploadEntryList()))
+	router.Handler("POST", "/admin/events/:id/accreditation", admin(ch.UploadAccreditation()))
+	router.Handler("POST", "/admin/events/:id/go-live", admin(ch.GoLive()))
+	router.Handler("GET", "/admin/archive", admin(ch.Archive()))
+	router.Handler("GET", "/portal", httpx.Chain(ch.Portal(), authenticate))
 
 	handler := httpx.Chain(router, httpx.RequestID, httpx.Recovery(logger), httpx.Logging(logger))
 	server := httpx.NewServer("web", cfg.HTTP.Addr, handler, logger)
