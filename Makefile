@@ -2,6 +2,7 @@
 
 # ── Config ──────────────────────────────────────────────────────────────────
 MIGRATE_ROLE_URL ?= postgres://paddock_migrate:paddock_migrate@localhost:5432/paddock?sslmode=disable
+APP_ROLE_URL     ?= postgres://paddock_app:paddock_app@localhost:5432/paddock?sslmode=disable
 GOLANGCI_CFG     := build/ci/golangci.yml
 MIGRATIONS_DIR   := migrations
 
@@ -21,7 +22,16 @@ down: ## Stop the local backing services
 	docker compose -f deploy/docker-compose.yml down
 
 .PHONY: run
-run: up migrate ## Bring the stack up and run cmd/web
+run: up migrate ## Bring the stack up and run cmd/web (dev env, cookies over http)
+	DATABASE_URL="$(APP_ROLE_URL)" \
+	PADDOCK_BASE_URL="http://localhost:8080" \
+	PADDOCK_MAIL_FROM="no-reply@paddock.local" \
+	PADDOCK_COOKIE_SECURE="false" \
+	PADDOCK_SMTP_ADDR="localhost:1025" \
+	S3_ENDPOINT="http://localhost:9000" \
+	S3_ACCESS_KEY_ID="minioadmin" \
+	S3_SECRET_ACCESS_KEY="minioadmin" \
+	S3_BUCKET="paddock-dev" \
 	go run ./cmd/web
 
 # ── Migrations (run as the BYPASSRLS migration role) ─────────────────────────
