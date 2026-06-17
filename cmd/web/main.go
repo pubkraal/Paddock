@@ -117,7 +117,12 @@ func run(logger *slog.Logger) error {
 	router.Handler("GET", "/admin/archive", admin(ch.Archive()))
 	router.Handler("GET", "/portal", httpx.Chain(ch.Portal(), authenticate))
 
-	handler := httpx.Chain(router, httpx.RequestID, httpx.Recovery(logger), httpx.Logging(logger))
+	handler := httpx.Chain(router,
+		httpx.RequestID,
+		httpx.SecurityHeaders(cfg.Auth.CookieSecure),
+		httpx.Recovery(logger),
+		httpx.Logging(logger),
+	)
 	server := httpx.NewServer("web", cfg.HTTP.Addr, handler, logger)
 
 	sig := make(chan os.Signal, 1)

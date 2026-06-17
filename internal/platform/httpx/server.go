@@ -11,6 +11,8 @@ import (
 
 const (
 	readHeaderTimeout = 10 * time.Second
+	readTimeout       = 30 * time.Second
+	writeTimeout      = 60 * time.Second
 	idleTimeout       = 120 * time.Second
 )
 
@@ -33,6 +35,8 @@ func NewServer(name, addr string, handler http.Handler, logger *slog.Logger) *Se
 			Addr:              addr,
 			Handler:           handler,
 			ReadHeaderTimeout: readHeaderTimeout,
+			ReadTimeout:       readTimeout,
+			WriteTimeout:      writeTimeout,
 			IdleTimeout:       idleTimeout,
 		},
 	}
