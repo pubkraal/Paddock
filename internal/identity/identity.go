@@ -14,6 +14,9 @@ var (
 	ErrUserNotFound = errors.New("identity: user not found")
 	// ErrUserDisabled means the user exists but is not permitted to sign in.
 	ErrUserDisabled = errors.New("identity: user is disabled")
+	// ErrEmailTaken means the email is already registered to another
+	// organization, so a consumer cannot be provisioned for it in this scope.
+	ErrEmailTaken = errors.New("identity: email registered to another organization")
 )
 
 // OrgType is the kind of organization (PLAN §5). It is a tenant, whatever its
