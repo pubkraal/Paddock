@@ -5,9 +5,12 @@ package catalog_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 
 	"github.com/pubkraal/paddock/internal/catalog"
+	"github.com/pubkraal/paddock/internal/identity"
+	"github.com/pubkraal/paddock/internal/platform/tabular"
 )
 
 func TestIntegration_EntriesAndAccreditationsOrgScoped(t *testing.T) {
@@ -107,6 +110,49 @@ func TestIntegration_EntriesAndAccreditationsOrgScoped(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("cross-tenant entry-list insert succeeded, want RLS rejection")
+	}
+}
+
+// TestIntegration_ImportRejectsForeignEvent proves the IDOR guard: an org-A
+// caller cannot attach an entry list to org B's event id (org_id = A matches the
+// RLS WITH CHECK, but the event_id belongs to B). Both the composite FK and the
+// service-layer scoped read must reject it. This is the attack the original
+// cross-tenant test missed (it only varied org_id, which RLS already blocks).
+func TestIntegration_ImportRejectsForeignEvent(t *testing.T) {
+	t.Parallel()
+
+	appPool, migrateDB := startCatalogDB(t)
+	seedOrg(t, migrateDB, orgA, "Northern Lights", "series", "eu-central-1")
+	seedOrg(t, migrateDB, orgB, "Veldhoven Racing", "team", "eu-west-1")
+
+	repo := catalog.NewRepository(appPool)
+	eventB := createEvent(t, repo, orgB, "B's event")
+
+	// DB layer: composite (event_id, org_id) FK rejects org_id=A + event_id=B.
+	dbErr := repo.WithOrg(context.Background(), orgA, func(ctx context.Context, tx *sql.Tx) error {
+		_, e := repo.InsertEntryListTx(ctx, tx, orgA, eventB, "attack.csv")
+
+		return e
+	})
+	if dbErr == nil {
+		t.Fatal("composite FK did not reject a cross-tenant entry_list insert")
+	}
+
+	// App layer: ImportEntryList aborts with ErrEventNotFound for a foreign event.
+	svc := catalog.NewService(repo, identity.NewRepository(appPool), &countingEnqueuer{})
+	sheet := tabular.Sheet{Header: []string{"Car", "Team"}, Rows: [][]string{{"72", "AMG"}}}
+
+	_, entryErr := svc.ImportEntryList(context.Background(), orgA, eventB, "attack.csv", sheet)
+	if !errors.Is(entryErr, catalog.ErrEventNotFound) {
+		t.Errorf("ImportEntryList for a foreign event = %v, want ErrEventNotFound", entryErr)
+	}
+
+	// And accreditation import likewise refuses to provision/invite for it.
+	accSheet := tabular.Sheet{Header: []string{"Name", "Email", "Tier"}, Rows: [][]string{{"X", "x@a.test", "media"}}}
+
+	_, accErr := svc.ImportAccreditation(context.Background(), orgA, eventB, accSheet)
+	if !errors.Is(accErr, catalog.ErrEventNotFound) {
+		t.Errorf("ImportAccreditation for a foreign event = %v, want ErrEventNotFound", accErr)
 	}
 }
 

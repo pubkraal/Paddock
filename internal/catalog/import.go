@@ -68,6 +68,15 @@ func (s *Service) ImportEntryList(
 	}
 
 	err = s.store.WithOrg(ctx, orgID, func(ctx context.Context, tx *sql.Tx) error {
+		// Verify the event belongs to the caller's org before writing. The RLS
+		// WITH CHECK on entry_lists only guards org_id; the event_id FK check
+		// bypasses RLS, so without this scoped read an admin could attach rows to
+		// another org's event (ADR-0008 / the IDOR guard). GetEventTx is
+		// RLS-SELECT-filtered, so a foreign event id returns ErrEventNotFound.
+		if _, err := s.store.GetEventTx(ctx, tx, eventID); err != nil {
+			return err
+		}
+
 		listID, err := s.store.InsertEntryListTx(ctx, tx, orgID, eventID, filename)
 		if err != nil {
 			return err
@@ -166,6 +175,13 @@ func (s *Service) ImportAccreditation(
 	result := AccreditationResult{AccreditationPreview: preview}
 
 	err = s.store.WithOrg(ctx, orgID, func(ctx context.Context, tx *sql.Tx) error {
+		// Scoped ownership check before any write — see ImportEntryList: the
+		// accreditations event_id FK bypasses RLS, so confirm the event is the
+		// caller's via an RLS-filtered read first (the IDOR guard).
+		if _, err := s.store.GetEventTx(ctx, tx, eventID); err != nil {
+			return err
+		}
+
 		for i := range preview.Rows {
 			row := preview.Rows[i]
 

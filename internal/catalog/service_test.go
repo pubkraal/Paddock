@@ -418,6 +418,42 @@ func TestService_ImportEntryList(t *testing.T) {
 	}
 }
 
+func TestService_ImportEntryList_ForeignEventAborts(t *testing.T) {
+	t.Parallel()
+
+	// GetEventTx returns ErrEventNotFound (the event is not in the caller's org):
+	// the import must abort before inserting anything.
+	store := &mockStore{getEventErr: catalog.ErrEventNotFound, listID: "should-not-be-used"}
+	svc := catalog.NewService(store, &mockProvisioner{}, &mockEnqueuer{})
+
+	_, err := svc.ImportEntryList(context.Background(), "org-1", "foreign-event", "f.csv", entrySheet())
+	if !errors.Is(err, catalog.ErrEventNotFound) {
+		t.Fatalf("err = %v, want ErrEventNotFound", err)
+	}
+
+	if len(store.insertedEntries) != 0 {
+		t.Errorf("inserted %d entries for a foreign event, want 0", len(store.insertedEntries))
+	}
+}
+
+func TestService_ImportAccreditation_ForeignEventAborts(t *testing.T) {
+	t.Parallel()
+
+	store := &mockStore{getEventErr: catalog.ErrEventNotFound}
+	prov := &mockProvisioner{user: identity.User{ID: "u1"}, created: true}
+	enq := &mockEnqueuer{}
+	svc := catalog.NewService(store, prov, enq)
+
+	_, err := svc.ImportAccreditation(context.Background(), "org-1", "foreign-event", accSheet())
+	if !errors.Is(err, catalog.ErrEventNotFound) {
+		t.Fatalf("err = %v, want ErrEventNotFound", err)
+	}
+
+	if len(store.insertedAccs) != 0 || len(prov.gotEmails) != 0 || enq.count != 0 {
+		t.Errorf("foreign-event accreditation import wrote/provisioned/invited; want none")
+	}
+}
+
 func TestService_ImportEntryList_NoValidRowsSkipsWrite(t *testing.T) {
 	t.Parallel()
 
