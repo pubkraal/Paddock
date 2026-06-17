@@ -14,4 +14,5 @@ DROP TABLE IF EXISTS sessions;
 DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS seasons;
 DROP TABLE IF EXISTS championships;
+DROP TYPE IF EXISTS event_status;
 DROP TYPE IF EXISTS session_type;

@@ -152,7 +152,7 @@ func (h *Handler) UploadEntryList() http.HandlerFunc {
 
 		eventID := httprouter.ParamsFromContext(r.Context()).ByName("id")
 
-		filename, sheet, err := h.parseUpload(r)
+		filename, sheet, err := h.parseUpload(w, r)
 		if err != nil {
 			h.render(r.Context(), w, "import_error", err.Error())
 
@@ -183,7 +183,7 @@ func (h *Handler) UploadAccreditation() http.HandlerFunc {
 
 		eventID := httprouter.ParamsFromContext(r.Context()).ByName("id")
 
-		_, sheet, err := h.parseUpload(r)
+		_, sheet, err := h.parseUpload(w, r)
 		if err != nil {
 			h.render(r.Context(), w, "import_error", err.Error())
 
@@ -282,9 +282,10 @@ func (h *Handler) renderEventStep(ctx context.Context, w http.ResponseWriter, or
 }
 
 // parseUpload reads the single uploaded file, picks a parser by its filename,
-// and returns the parsed sheet.
-func (h *Handler) parseUpload(r *http.Request) (string, tabular.Sheet, error) {
-	r.Body = http.MaxBytesReader(nil, r.Body, maxUploadBytes)
+// and returns the parsed sheet. w is threaded into MaxBytesReader so the server
+// manages the connection when an upload exceeds the cap.
+func (h *Handler) parseUpload(w http.ResponseWriter, r *http.Request) (string, tabular.Sheet, error) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes)
 
 	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
 		return "", tabular.Sheet{}, errUpload("could not read upload")

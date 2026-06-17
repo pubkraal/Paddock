@@ -13,6 +13,8 @@ CREATE TYPE session_type AS ENUM (
     'practice', 'qualifying', 'race', 'warmup', 'podium', 'paddock'
 );
 
+CREATE TYPE event_status AS ENUM ('draft', 'live');
+
 CREATE TABLE championships (
     id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id     uuid NOT NULL REFERENCES organizations (id) ON DELETE CASCADE,
@@ -42,7 +44,7 @@ CREATE TABLE events (
     name       text NOT NULL,
     starts_on  date,
     ends_on    date,
-    status     text NOT NULL DEFAULT 'draft',
+    status     event_status NOT NULL DEFAULT 'draft',
     created_at timestamptz NOT NULL DEFAULT now()
 );
 

@@ -62,7 +62,9 @@ SELECT id, org_id, email, role, status, created_at FROM users WHERE email = $1`
 // (created=false), so re-import does not double-invite. An email registered to a
 // DIFFERENT org conflicts on insert and is invisible under this scope, yielding
 // ErrEmailTaken — the importer reports it as a row error rather than silently
-// rebinding the person.
+// rebinding the person. That cross-org invisibility relies on the RLS scope
+// predicate filtering the other org's row to zero rows; migration 0009 hardens
+// that predicate against an empty (post-SET-LOCAL) GUC so this stays correct.
 func (r *Repository) ProvisionConsumerTx(ctx context.Context, tx *sql.Tx, orgID, email string) (User, bool, error) {
 	var u User
 
