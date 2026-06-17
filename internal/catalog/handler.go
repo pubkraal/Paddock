@@ -59,6 +59,7 @@ type dashboardData struct {
 	OrgID  string
 	Role   string
 	Events []Event
+	CSRF   string
 }
 
 type wizardData struct {
@@ -76,6 +77,7 @@ type eventStepData struct {
 type portalData struct {
 	OrgID string
 	Tier  Tier
+	CSRF  string
 }
 
 // Dashboard is the press-officer landing: the org's events and the setup CTA.
@@ -99,6 +101,7 @@ func (h *Handler) Dashboard() http.HandlerFunc {
 			OrgID:  id.OrgID,
 			Role:   string(id.Role),
 			Events: events,
+			CSRF:   id.CSRFToken,
 		})
 	}
 }
@@ -244,7 +247,7 @@ func (h *Handler) Portal() http.HandlerFunc {
 			return
 		}
 
-		h.render(r.Context(), w, dashboardForTier(tier), portalData{OrgID: id.OrgID, Tier: tier})
+		h.render(r.Context(), w, dashboardForTier(tier), portalData{OrgID: id.OrgID, Tier: tier, CSRF: id.CSRFToken})
 	}
 }
 
@@ -253,7 +256,7 @@ func (h *Handler) Archive() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id, _ := identity.IdentityFromContext(r.Context())
 
-		h.render(r.Context(), w, "dash_archive", portalData{OrgID: id.OrgID})
+		h.render(r.Context(), w, "dash_archive", portalData{OrgID: id.OrgID, CSRF: id.CSRFToken})
 	}
 }
 

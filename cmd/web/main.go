@@ -28,8 +28,9 @@ import (
 	"github.com/pubkraal/paddock/web"
 )
 
-// mailSendTimeout bounds how long a magic-link send may hold the request open,
-// so a slow SMTP relay cannot widen the anti-enumeration timing window.
+// mailSendTimeout bounds a single magic-link send. The send now runs off the
+// response path (the login handler dispatches it asynchronously), so this caps
+// the background goroutine rather than the request itself.
 const mailSendTimeout = 5 * time.Second
 
 func main() {
@@ -106,12 +107,15 @@ func run(logger *slog.Logger) error {
 	router.HandlerFunc("GET", "/login", ih.LoginPage())
 	router.HandlerFunc("POST", "/auth/magic", ih.RequestLink())
 	router.HandlerFunc("GET", "/auth/redeem", ih.Redeem())
-	router.HandlerFunc("POST", "/logout", ih.Logout())
 
 	authenticate := identity.Authenticate(sessions)
 	admin := func(h http.Handler) http.Handler {
 		return httpx.Chain(h, authenticate, identity.RequireAdmin, identity.RequireCSRF)
 	}
+
+	// Logout is CSRF-protected too: it changes state (ends the session), so it
+	// runs behind Authenticate + RequireCSRF and its form carries the token.
+	router.Handler("POST", "/logout", httpx.Chain(ih.Logout(), authenticate, identity.RequireCSRF))
 
 	router.Handler("GET", "/admin", admin(ch.Dashboard()))
 	router.Handler("GET", "/admin/events/new", admin(ch.NewEvent()))

@@ -11,7 +11,7 @@
     </div>
     <div class="topbar__meta">
       <span class="mono-label">Org {{.OrgID}}</span>
-      <form method="post" action="/logout"><button class="btn btn--ghost" type="submit">Sign out</button></form>
+      <form method="post" action="/logout"><input type="hidden" name="_csrf" value="{{.CSRF}}"><button class="btn btn--ghost" type="submit">Sign out</button></form>
     </div>
   </header>
   <main class="main">
