@@ -35,9 +35,9 @@ ALTER TABLE accreditations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE accreditations FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY accreditations_org_isolation_select ON accreditations
-    FOR SELECT USING (org_id = current_setting('app.current_org', true)::uuid);
+    FOR SELECT USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY accreditations_org_isolation_insert ON accreditations
-    FOR INSERT WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR INSERT WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY accreditations_org_isolation_update ON accreditations
-    FOR UPDATE USING (org_id = current_setting('app.current_org', true)::uuid)
-    WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR UPDATE USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid)
+    WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);

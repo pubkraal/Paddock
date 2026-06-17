@@ -73,33 +73,33 @@ ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sessions FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY championships_org_isolation_select ON championships
-    FOR SELECT USING (org_id = current_setting('app.current_org', true)::uuid);
+    FOR SELECT USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY championships_org_isolation_insert ON championships
-    FOR INSERT WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR INSERT WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY championships_org_isolation_update ON championships
-    FOR UPDATE USING (org_id = current_setting('app.current_org', true)::uuid)
-    WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR UPDATE USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid)
+    WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 
 CREATE POLICY seasons_org_isolation_select ON seasons
-    FOR SELECT USING (org_id = current_setting('app.current_org', true)::uuid);
+    FOR SELECT USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY seasons_org_isolation_insert ON seasons
-    FOR INSERT WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR INSERT WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY seasons_org_isolation_update ON seasons
-    FOR UPDATE USING (org_id = current_setting('app.current_org', true)::uuid)
-    WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR UPDATE USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid)
+    WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 
 CREATE POLICY events_org_isolation_select ON events
-    FOR SELECT USING (org_id = current_setting('app.current_org', true)::uuid);
+    FOR SELECT USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY events_org_isolation_insert ON events
-    FOR INSERT WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR INSERT WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY events_org_isolation_update ON events
-    FOR UPDATE USING (org_id = current_setting('app.current_org', true)::uuid)
-    WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR UPDATE USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid)
+    WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 
 CREATE POLICY sessions_org_isolation_select ON sessions
-    FOR SELECT USING (org_id = current_setting('app.current_org', true)::uuid);
+    FOR SELECT USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY sessions_org_isolation_insert ON sessions
-    FOR INSERT WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR INSERT WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY sessions_org_isolation_update ON sessions
-    FOR UPDATE USING (org_id = current_setting('app.current_org', true)::uuid)
-    WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR UPDATE USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid)
+    WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);

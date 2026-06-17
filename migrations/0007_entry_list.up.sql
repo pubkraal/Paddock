@@ -43,17 +43,17 @@ ALTER TABLE entries ENABLE ROW LEVEL SECURITY;
 ALTER TABLE entries FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY entry_lists_org_isolation_select ON entry_lists
-    FOR SELECT USING (org_id = current_setting('app.current_org', true)::uuid);
+    FOR SELECT USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY entry_lists_org_isolation_insert ON entry_lists
-    FOR INSERT WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR INSERT WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY entry_lists_org_isolation_update ON entry_lists
-    FOR UPDATE USING (org_id = current_setting('app.current_org', true)::uuid)
-    WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR UPDATE USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid)
+    WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 
 CREATE POLICY entries_org_isolation_select ON entries
-    FOR SELECT USING (org_id = current_setting('app.current_org', true)::uuid);
+    FOR SELECT USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY entries_org_isolation_insert ON entries
-    FOR INSERT WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR INSERT WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 CREATE POLICY entries_org_isolation_update ON entries
-    FOR UPDATE USING (org_id = current_setting('app.current_org', true)::uuid)
-    WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR UPDATE USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid)
+    WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);

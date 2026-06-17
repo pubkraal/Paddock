@@ -4,7 +4,10 @@
 -- data-only in this phase: captured now, surfaced for tagging in a later phase.
 -- Like every tenant table the venue is org-scoped under RLS with the per-command
 -- policy pattern established in 0002/0003 (FORCE RLS house default, no DELETE
--- policy → least privilege; current_setting(..., true) fails closed when unset).
+-- policy → least privilege). The scope predicate uses NULLIF(current_setting(
+-- 'app.current_org', true), '')::uuid so an unset OR empty GUC (the latter is how
+-- a SET LOCAL reverts on a pooled connection) yields NULL → zero rows, failing
+-- closed gracefully (see 0009 for the rationale and the 0002/0003 backfill).
 
 CREATE TABLE venues (
     id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -21,11 +24,11 @@ ALTER TABLE venues ENABLE ROW LEVEL SECURITY;
 ALTER TABLE venues FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY venues_org_isolation_select ON venues
-    FOR SELECT USING (org_id = current_setting('app.current_org', true)::uuid);
+    FOR SELECT USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 
 CREATE POLICY venues_org_isolation_insert ON venues
-    FOR INSERT WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR INSERT WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
 
 CREATE POLICY venues_org_isolation_update ON venues
-    FOR UPDATE USING (org_id = current_setting('app.current_org', true)::uuid)
-    WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
+    FOR UPDATE USING (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid)
+    WITH CHECK (org_id = NULLIF(current_setting('app.current_org', true), '')::uuid);
