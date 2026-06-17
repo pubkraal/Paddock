@@ -1,0 +1,66 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - revive
+    - err113
+    - nlreturn
+    - testpackage
+    - tagalign
+    - unparam
+    - errorlint
+    - bodyclose
+    - misspell
+    - unconvert
+    - wastedassign
+    - nilerr
+    - prealloc
+  settings:
+    revive:
+      rules:
+        - name: var-naming
+        - name: line-length-limit
+          arguments: [130]
+        - name: early-return
+        - name: unexported-return
+        - name: error-return
+        - name: error-naming
+        - name: context-as-argument
+    tagalign:
+      order:
+        - db
+        - json
+        - yaml
+        - yml
+        - toml
+        - mapstructure
+        - binding
+        - validate
+    nlreturn:
+      block-size: 1
+  exclusions:
+    generated: lax
+    rules:
+      - path: _test\.go
+        linters:
+          - err113
+          - bodyclose
+
+formatters:
+  enable:
+    - gofumpt
+    - gci
+    - gofmt
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+      custom-order: true
+    gofumpt:
+      extra-rules: true

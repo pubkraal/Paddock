@@ -1,0 +1,16 @@
+/* Paper — optional light scheme for the daylight media/sponsor portal. PLAN §4.
+   Only the chrome flips; photo tiles stay dark in both schemes. */
+
+[data-theme="paper"] {
+  --app-bg: #f4f2ec;
+  --card: #fbfaf6;
+  --border-strong: #d6d2c7;
+  --border-mid: #e4e1d8;
+  --border-hair: #e4e1d8;
+
+  --text-primary: #16181c;
+  --text-secondary: #2c2f35;
+  --text-muted: #5f636b;
+  --text-faint: #80858d;
+  --text-dim: #9aa0a8;
+}

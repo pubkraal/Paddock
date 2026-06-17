@@ -1,0 +1,50 @@
+/* Paddock design tokens — PLAN §4 / design handoff.
+   Self-hosted variable fonts (Archivo for UI, JetBrains Mono for all data). */
+
+@font-face {
+  font-family: "Archivo";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 900;
+  src: url("/static/fonts/archivo-latin-wght-normal.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400 700;
+  src: url("/static/fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2");
+}
+
+:root {
+  /* Accent — the single brand pop. */
+  --accent: #e0452f;
+
+  /* Racing-flag status colours. */
+  --flag-green: #43b97a;
+  --flag-yellow: #e0a23f;
+  --flag-red: #e0452f;
+  --flag-blue: #4d8fe0;
+  --flag-neutral: #9aa0a8;
+  --flag-chequered: #cfd3d9;
+
+  /* Typography. */
+  --font-ui: "Archivo", system-ui, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Radii. */
+  --radius-card: 13px;
+  --radius-control: 8px;
+  --radius-tile: 8px;
+  --radius-pill: 999px;
+  --radius-cell: 1.5px;
+
+  /* Shadows. */
+  --shadow-card: 0 24px 50px -24px rgba(0, 0, 0, .45);
+  --shadow-hero: 0 30px 60px -26px rgba(0, 0, 0, .5);
+
+  /* Spacing. */
+  --pad-card: 24px;
+  --gap: 16px;
+}

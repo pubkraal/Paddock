@@ -1,0 +1,44 @@
+{{define "styleguide" -}}
+{{template "head" .}}
+<main class="styleguide">
+  <header class="styleguide__head">
+    <span class="logo" aria-hidden="true"></span>
+    <h1>Paddock design system</h1>
+    <p class="muted">Phase 0 primitives — tokens, fonts, components. Throwaway visual QA surface.</p>
+  </header>
+
+  <section class="styleguide__section">
+    <h2 class="mono-label">Racing-flag status</h2>
+    <div class="badge-row">
+      {{range statuses}}{{template "badge" (badgeFor .)}}{{end}}
+    </div>
+  </section>
+
+  <section class="styleguide__section">
+    <h2 class="mono-label">Surfaces</h2>
+    <div class="swatch-row">
+      <div class="swatch" style="background:var(--app-bg)"><span class="mono-label">app-bg</span></div>
+      <div class="swatch" style="background:var(--card)"><span class="mono-label">card</span></div>
+      <div class="swatch" style="background:var(--border-strong)"><span class="mono-label">border</span></div>
+      <div class="swatch swatch--accent" style="background:var(--accent)"><span class="mono-label">accent</span></div>
+    </div>
+  </section>
+
+  <section class="styleguide__section">
+    <h2 class="mono-label">Typography</h2>
+    <p class="display">Archivo display — Zandvoort, Saturday.</p>
+    <p class="body">Archivo body 14px — the press office curates and publishes selects.</p>
+    <p class="data">JetBrains Mono — №31 · 14:52:07 · 47 / 63 chunks · asset_8f21c0</p>
+  </section>
+
+  <section class="styleguide__section">
+    <h2 class="mono-label">Components</h2>
+    <div class="component-row">
+      <button class="btn btn--primary" type="button">Publish</button>
+      <button class="btn" type="button">Cancel</button>
+      <input class="input" type="text" placeholder="Search car № or caption" aria-label="search">
+    </div>
+    <div class="tile tile--placeholder" aria-label="image placeholder"></div>
+  </section>
+{{template "foot" .}}
+{{- end}}

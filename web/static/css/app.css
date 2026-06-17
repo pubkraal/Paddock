@@ -1,0 +1,130 @@
+/* Paddock base component styles — PLAN §4 primitives. */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--app-bg);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Mono labels — uppercase, tracked, faint. All data uses the mono face. */
+.mono-label {
+  font-family: var(--font-data);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  font-size: 10.5px;
+  color: var(--text-faint);
+}
+
+.muted { color: var(--text-muted); }
+.data { font-family: var(--font-data); color: var(--text-secondary); }
+.display { font-size: 28px; font-weight: 800; letter-spacing: -.02em; margin: 0; }
+.body { font-size: 14px; color: var(--text-secondary); }
+
+/* Racing-flag badge — dot + uppercase mono label on a tint of the flag colour. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-data);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.badge__dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.badge--green   { background: color-mix(in srgb, var(--flag-green) 16%, transparent); color: var(--flag-green); }
+.badge--yellow  { background: color-mix(in srgb, var(--flag-yellow) 16%, transparent); color: var(--flag-yellow); }
+.badge--red     { background: color-mix(in srgb, var(--flag-red) 16%, transparent); color: var(--flag-red); }
+.badge--blue    { background: color-mix(in srgb, var(--flag-blue) 16%, transparent); color: var(--flag-blue); }
+.badge--neutral { background: color-mix(in srgb, var(--flag-neutral) 16%, transparent); color: var(--flag-neutral); }
+.badge--chequered { background: color-mix(in srgb, var(--flag-chequered) 16%, transparent); color: var(--flag-chequered); }
+
+.badge--green   .badge__dot { background: var(--flag-green); }
+.badge--yellow  .badge__dot { background: var(--flag-yellow); }
+.badge--red     .badge__dot { background: var(--flag-red); }
+.badge--blue    .badge__dot { background: var(--flag-blue); }
+.badge--neutral .badge__dot { background: var(--flag-neutral); }
+.badge--chequered .badge__dot { background: var(--flag-chequered); }
+
+/* Buttons + inputs. */
+.btn {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.input {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-mid);
+  background: var(--app-bg);
+  color: var(--text-primary);
+  min-width: 280px;
+}
+
+/* Image tile — diagonal-hatch placeholder until real renditions exist. */
+.tile {
+  border-radius: var(--radius-tile);
+  border: 1px solid var(--border-strong);
+  aspect-ratio: 3 / 2;
+  width: 320px;
+}
+
+.tile--placeholder {
+  background: repeating-linear-gradient(125deg, #14181e 0, #14181e 8px, #171c23 8px, #171c23 16px);
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, .55);
+}
+
+/* Logo — simple chequered-glyph mark. */
+.logo {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  background:
+    conic-gradient(var(--text-primary) 0 25%, transparent 0 50%, var(--text-primary) 0 75%, transparent 0);
+  background-size: 9px 9px;
+}
+
+/* Styleguide scaffold. */
+.styleguide { max-width: 1280px; margin: 0 auto; padding: 48px 32px; }
+.styleguide__head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 32px; }
+.styleguide__head h1 { font-size: 24px; font-weight: 800; letter-spacing: -.02em; margin: 8px 0 0; }
+.styleguide__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding: var(--pad-card);
+  margin-bottom: var(--gap);
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.badge-row, .swatch-row, .component-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.swatch {
+  width: 120px; height: 64px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  display: flex; align-items: flex-end; padding: 6px;
+}
+.swatch--accent .mono-label { color: #fff; }
