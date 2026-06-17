@@ -31,6 +31,8 @@ linters:
         - name: error-return
         - name: error-naming
         - name: context-as-argument
+          arguments:
+            - allowTypesBefore: "*testing.T"
     tagalign:
       order:
         - db

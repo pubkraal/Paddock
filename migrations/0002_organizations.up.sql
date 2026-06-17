@@ -22,6 +22,8 @@ CREATE TABLE organizations (
 ALTER TABLE organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE organizations FORCE ROW LEVEL SECURITY;
 
+-- current_setting(..., true) returns NULL when the GUC is unset, so an unscoped
+-- query sees zero rows rather than erroring — fails closed, gracefully.
 CREATE POLICY org_self ON organizations
-    USING (id = current_setting('app.current_org')::uuid)
-    WITH CHECK (id = current_setting('app.current_org')::uuid);
+    USING (id = current_setting('app.current_org', true)::uuid)
+    WITH CHECK (id = current_setting('app.current_org', true)::uuid);

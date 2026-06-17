@@ -25,6 +25,8 @@ CREATE INDEX users_org_id_idx ON users (org_id);
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users FORCE ROW LEVEL SECURITY;
 
+-- current_setting(..., true) returns NULL when the GUC is unset, so an unscoped
+-- query sees zero rows rather than erroring — fails closed, gracefully.
 CREATE POLICY org_isolation ON users
-    USING (org_id = current_setting('app.current_org')::uuid)
-    WITH CHECK (org_id = current_setting('app.current_org')::uuid);
+    USING (org_id = current_setting('app.current_org', true)::uuid)
+    WITH CHECK (org_id = current_setting('app.current_org', true)::uuid);
