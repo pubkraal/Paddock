@@ -253,6 +253,7 @@ Each phase: **Goal · Deliverables · Migrations · Tests · Acceptance · ADRs 
 - **Acceptance:** a fixture image enqueued as a job is processed by the worker and the derivative lands in MinIO; web tier latency is unaffected while a burst of jobs runs.
 - **ADRs:** 0003, 0005, 0006.
 - **Depends on:** 0 (independent of 1–2; can proceed in parallel after 0).
+- **Deferred from Phase 0 review (PR #1):** Phase 0 only *constructs* River clients (non-nil assertions). The transactional-enqueue semantics — enqueue inside `WithOrg`'s `*sql.Tx`, payload round-trip, dedupe — get real behavioural coverage here. Also pin the **MinIO image tag** in `deploy/docker-compose.yml` (left floating in Phase 0).
 
 ### Phase 4 — Ingest (FTP gateway + web upload + pipeline)
 - **Goal:** photographers transmit at trackside speed; assets appear with full metadata, deduped, originals retained.
@@ -262,6 +263,7 @@ Each phase: **Goal · Deliverables · Migrations · Tests · Acceptance · ADRs 
 - **Acceptance ("Zandvoort ingest slice"):** three photographers transmit ~800 images over SFTP during a session; each is routed to the correct event/session, deduped, original retained, thumbnail+preview generated; no serving-path impact; ingest queue drains within target.
 - **ADRs:** 0004, 0003, 0005, 0006, 0009.
 - **Depends on:** 2, 3.
+- **Deferred from Phase 0 review (PR #1):** the Phase 0 `cmd/ftp-gateway` reject-all skeleton (`rejectGateway`) was an untested placeholder. The real SFTP/FTPS server built here carries full test coverage — per-photographer auth, routing, stream-to-S3, and resumable chunking.
 
 ### Phase 5 — Galleries, curation & search
 - **Goal:** the press officer curates and the asset state machine governs visibility.
