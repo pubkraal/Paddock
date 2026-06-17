@@ -18,6 +18,7 @@ import (
 type mockAuthService struct {
 	requestErr error
 	gotEmail   string
+	calls      chan string
 	redeemSess identity.Session
 	redeemErr  error
 	loggedOut  string
@@ -26,6 +27,10 @@ type mockAuthService struct {
 
 func (m *mockAuthService) RequestMagicLink(_ context.Context, email string) error {
 	m.gotEmail = email
+
+	if m.calls != nil {
+		m.calls <- email
+	}
 
 	return m.requestErr
 }
@@ -67,7 +72,7 @@ func newHandler(t *testing.T, svc *mockAuthService, users mockUserReader) *ident
 		t.Fatalf("NewRenderer: %v", err)
 	}
 
-	return identity.NewHandler(identity.HandlerConfig{
+	h := identity.NewHandler(identity.HandlerConfig{
 		Service:      svc,
 		Users:        users,
 		Renderer:     r,
@@ -75,6 +80,9 @@ func newHandler(t *testing.T, svc *mockAuthService, users mockUserReader) *ident
 		CookieSecure: true,
 		SessionTTL:   time.Hour,
 	})
+	identity.RunDispatchSynchronously(h)
+
+	return h
 }
 
 func TestHandler_LoginPage(t *testing.T) {
@@ -160,6 +168,54 @@ func TestHandler_RequestLinkAntiEnumeration(t *testing.T) {
 
 	if !strings.Contains(clean.Body.String(), "Check your inbox") {
 		t.Error("confirmation missing")
+	}
+}
+
+func TestHandler_RequestLinkDispatchesOffResponsePath(t *testing.T) {
+	t.Parallel()
+
+	svc := &mockAuthService{}
+	h := newHandler(t, svc, mockUserReader{})
+
+	rr := requestLink(t, h, false)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rr.Code)
+	}
+
+	// The dispatch (run synchronously in tests) still resolves the submitted
+	// email — it just happens after the response is rendered, so the response
+	// timing is independent of the email.
+	if svc.gotEmail != testEmail {
+		t.Errorf("dispatched email = %q, want %q", svc.gotEmail, testEmail)
+	}
+}
+
+func TestHandler_RequestLinkDispatchRunsInGoroutine(t *testing.T) {
+	t.Parallel()
+
+	// Use the real (goroutine) async runner — no RunDispatchSynchronously — and
+	// confirm the dispatch still reaches the service.
+	r, err := web.NewRenderer()
+	if err != nil {
+		t.Fatalf("NewRenderer: %v", err)
+	}
+
+	calls := make(chan string, 1)
+	svc := &mockAuthService{calls: calls}
+	h := identity.NewHandler(identity.HandlerConfig{
+		Service: svc, Users: mockUserReader{}, Renderer: r,
+		Logger: quietLogger(), CookieSecure: true, SessionTTL: time.Hour,
+	})
+
+	requestLink(t, h, false)
+
+	select {
+	case got := <-calls:
+		if got != testEmail {
+			t.Errorf("dispatched email = %q, want %q", got, testEmail)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("dispatch goroutine never called RequestMagicLink")
 	}
 }
 
