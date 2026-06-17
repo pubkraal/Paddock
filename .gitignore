@@ -1,0 +1,8 @@
+.DS_Store
+/bin/
+/tmp/
+coverage.out
+coverage.html
+*.test
+.env
+.env.local
