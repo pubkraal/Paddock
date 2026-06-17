@@ -7,6 +7,11 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+// maxUnzipBytes bounds how far an .xlsx (a ZIP container) may decompress, so a
+// small "zip bomb" upload cannot expand to gigabytes and exhaust memory
+// (CWE-776). It is far above any legitimate roster yet well below an OOM.
+const maxUnzipBytes = 64 << 20 // 64 MiB
+
 // xlsxParser reads the first worksheet of an .xlsx file via excelize. Cells are
 // returned as their displayed string values, matching the CSV adapter. getRows
 // is a seam: it defaults to (*excelize.File).GetRows and is overridden in tests
@@ -25,7 +30,7 @@ func newXLSXParser() xlsxParser {
 }
 
 func (p xlsxParser) Parse(r io.Reader) (Sheet, error) {
-	f, err := excelize.OpenReader(r)
+	f, err := excelize.OpenReader(r, excelize.Options{UnzipSizeLimit: maxUnzipBytes})
 	if err != nil {
 		return Sheet{}, fmt.Errorf("tabular: open xlsx: %w", err)
 	}

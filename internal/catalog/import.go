@@ -4,11 +4,30 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/pubkraal/paddock/internal/identity"
 	"github.com/pubkraal/paddock/internal/platform/tabular"
 )
+
+// maxImportRows bounds how many data rows one import processes, so a huge roster
+// cannot drive an unbounded provisioning loop and a giant long-running
+// transaction (CWE-770). Excess rows are dropped and reported, never silently
+// truncated.
+const maxImportRows = 10000
+
+// capRows returns at most maxImportRows rows and a RowError describing the drop
+// when the file is over the cap.
+func capRows(rows [][]string) ([][]string, []RowError) {
+	if len(rows) <= maxImportRows {
+		return rows, nil
+	}
+
+	msg := fmt.Sprintf("file has %d rows; only the first %d were imported — split the file", len(rows), maxImportRows)
+
+	return rows[:maxImportRows], []RowError{{Line: maxImportRows + 1, Message: msg}}
+}
 
 // RowError records one rejected import row: its 1-based line in the source file
 // (the header is line 1) and why it was skipped. Malformed rows are reported,
@@ -99,9 +118,12 @@ func parseEntries(sheet tabular.Sheet) (EntryPreview, error) {
 
 	var preview EntryPreview
 
+	rows, capErrs := capRows(sheet.Rows)
+	preview.Errors = append(preview.Errors, capErrs...)
+
 	seen := make(map[string]bool)
 
-	for i, row := range sheet.Rows {
+	for i, row := range rows {
 		line := i + 2 // header is line 1
 
 		carNo := m.Value(row, "car_no")
@@ -239,7 +261,10 @@ func parseAccreditations(sheet tabular.Sheet) (AccreditationPreview, error) {
 
 	preview := AccreditationPreview{TierCounts: make(map[Tier]int)}
 
-	for i, row := range sheet.Rows {
+	rows, capErrs := capRows(sheet.Rows)
+	preview.Errors = append(preview.Errors, capErrs...)
+
+	for i, row := range rows {
 		line := i + 2
 
 		name := m.Value(row, "name")

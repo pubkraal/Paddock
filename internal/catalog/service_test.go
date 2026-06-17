@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -540,6 +542,64 @@ func TestService_PreviewAccreditation(t *testing.T) {
 	if preview.TierCounts[catalog.TierMedia] != 1 || preview.TierCounts[catalog.TierSponsor] != 1 {
 		t.Errorf("tier counts = %+v", preview.TierCounts)
 	}
+}
+
+func TestService_Preview_RowCapTruncatesAndReports(t *testing.T) {
+	t.Parallel()
+
+	svc := catalog.NewService(&mockStore{}, &mockProvisioner{}, &mockEnqueuer{})
+
+	const over = 10_005
+
+	entryRows := make([][]string, over)
+	accRows := make([][]string, over)
+
+	for i := range entryRows {
+		entryRows[i] = []string{strconv.Itoa(i + 1), "Team", "GT3", ""}
+		accRows[i] = []string{"P", "p" + strconv.Itoa(i) + "@x.test", "media"}
+	}
+
+	entryPreview, err := svc.PreviewEntryList(tabular.Sheet{
+		Header: []string{"Car", "Team", "Class", "Drivers"},
+		Rows:   entryRows,
+	})
+	if err != nil {
+		t.Fatalf("PreviewEntryList: %v", err)
+	}
+
+	if len(entryPreview.Entries) != 10_000 {
+		t.Errorf("entries = %d, want capped at 10000", len(entryPreview.Entries))
+	}
+
+	if !hasTruncationError(entryPreview.Errors) {
+		t.Error("entry preview missing the truncation RowError")
+	}
+
+	accPreview, err := svc.PreviewAccreditation(tabular.Sheet{
+		Header: []string{"Name", "Email", "Tier"},
+		Rows:   accRows,
+	})
+	if err != nil {
+		t.Fatalf("PreviewAccreditation: %v", err)
+	}
+
+	if len(accPreview.Rows) != 10_000 {
+		t.Errorf("accreditation rows = %d, want capped at 10000", len(accPreview.Rows))
+	}
+
+	if !hasTruncationError(accPreview.Errors) {
+		t.Error("accreditation preview missing the truncation RowError")
+	}
+}
+
+func hasTruncationError(errs []catalog.RowError) bool {
+	for _, e := range errs {
+		if strings.Contains(e.Message, "only the first") {
+			return true
+		}
+	}
+
+	return false
 }
 
 func TestService_PreviewAccreditation_MissingColumns(t *testing.T) {
