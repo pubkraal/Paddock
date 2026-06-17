@@ -35,6 +35,10 @@ migrate-down: ## Roll back River's schema then one app migration
 	go tool river migrate-down --database-url "$(MIGRATE_ROLE_URL)" --line main --target-version 0
 	migrate -path $(MIGRATIONS_DIR) -database "$(MIGRATE_ROLE_URL)" down 1
 
+.PHONY: seed
+seed: ## Seed dev orgs + admins (idempotent); prints the sign-in emails
+	DATABASE_URL="$(MIGRATE_ROLE_URL)" go run ./cmd/seed
+
 # ── Build / format / lint / test (mirror the CLAUDE.md pre-commit gates) ─────
 .PHONY: build
 build: ## Compile all three deployables
