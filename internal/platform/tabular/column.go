@@ -5,11 +5,14 @@ import (
 	"strings"
 )
 
-// Column is a required logical column and the header labels that may denote it.
-// Synonyms are matched case-insensitively against trimmed header cells.
+// Column is a logical column and the header labels that may denote it. Synonyms
+// are matched case-insensitively against trimmed header cells. A Required column
+// missing from the header makes Map fail; an optional one resolves to index -1
+// (Value then returns "").
 type Column struct {
 	Key      string
 	Synonyms []string
+	Required bool
 }
 
 // MissingColumnsError reports required columns absent from a header. Keys is in
@@ -43,7 +46,11 @@ func Map(header []string, cols []Column) (Mapping, error) {
 	for _, col := range cols {
 		idx, ok := matchColumn(normalized, col.Synonyms)
 		if !ok {
-			missing = append(missing, col.Key)
+			if col.Required {
+				missing = append(missing, col.Key)
+			}
+
+			indices[col.Key] = -1
 
 			continue
 		}
@@ -70,9 +77,20 @@ func matchColumn(normalizedHeader, synonyms []string) (int, bool) {
 	return -1, false
 }
 
-// Index returns the header index a logical key resolved to.
+// Index returns the header index a logical key resolved to, or -1 if an optional
+// column was absent.
 func (m Mapping) Index(key string) int {
-	return m.indices[key]
+	idx, ok := m.indices[key]
+	if !ok {
+		return -1
+	}
+
+	return idx
+}
+
+// Has reports whether a logical key resolved to a present header column.
+func (m Mapping) Has(key string) bool {
+	return m.Index(key) >= 0
 }
 
 // Value returns the cell for a logical key in a row, or "" if the row is too

@@ -44,10 +44,10 @@ func TestMap_ReportsMissingRequiredColumns(t *testing.T) {
 
 	header := []string{"Car", "Team"}
 	cols := []tabular.Column{
-		{Key: "car_no", Synonyms: []string{"car"}},
-		{Key: "team", Synonyms: []string{"team"}},
-		{Key: "class", Synonyms: []string{"class", "category"}},
-		{Key: "tier", Synonyms: []string{"tier"}},
+		{Key: "car_no", Synonyms: []string{"car"}, Required: true},
+		{Key: "team", Synonyms: []string{"team"}, Required: true},
+		{Key: "class", Synonyms: []string{"class", "category"}, Required: true},
+		{Key: "tier", Synonyms: []string{"tier"}, Required: true},
 	}
 
 	_, err := tabular.Map(header, cols)
@@ -64,6 +64,42 @@ func TestMap_ReportsMissingRequiredColumns(t *testing.T) {
 
 	if msg := missing.Error(); !strings.Contains(msg, "class") || !strings.Contains(msg, "tier") {
 		t.Errorf("Error() = %q, want it to name class and tier", msg)
+	}
+}
+
+func TestMap_OptionalColumnAbsent(t *testing.T) {
+	t.Parallel()
+
+	header := []string{"Car", "Team"}
+	cols := []tabular.Column{
+		{Key: "car_no", Synonyms: []string{"car"}, Required: true},
+		{Key: "drivers", Synonyms: []string{"drivers"}}, // optional, absent
+	}
+
+	m, err := tabular.Map(header, cols)
+	if err != nil {
+		t.Fatalf("Map: %v", err)
+	}
+
+	if m.Has("drivers") {
+		t.Error("Has(drivers) = true, want false (absent optional)")
+	}
+
+	if got := m.Index("drivers"); got != -1 {
+		t.Errorf("Index(drivers) = %d, want -1", got)
+	}
+
+	if got := m.Value([]string{"72", "AMG"}, "drivers"); got != "" {
+		t.Errorf("Value(drivers) = %q, want empty", got)
+	}
+
+	if !m.Has("car_no") {
+		t.Error("Has(car_no) = false, want true")
+	}
+
+	// A key never declared in the column set resolves to -1, not 0.
+	if got := m.Index("never-declared"); got != -1 {
+		t.Errorf("Index(unknown) = %d, want -1", got)
 	}
 }
 
