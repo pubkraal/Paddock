@@ -20,6 +20,8 @@ var (
 	ErrEventNotFound = errors.New("catalog: event not found")
 	// ErrUnknownTemplate means no onboarding template has the given key.
 	ErrUnknownTemplate = errors.New("catalog: unknown template")
+	// ErrEventNameRequired means a create-event request had a blank event name.
+	ErrEventNameRequired = errors.New("catalog: event name is required")
 )
 
 // SessionType is the typed kind of a session within an event (PLAN §5).
